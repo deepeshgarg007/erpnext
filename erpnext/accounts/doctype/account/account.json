@@ -116,10 +116,10 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "Parent Account",
+   "mandatory_depends_on": "eval:doc.is_group != 1",
    "oldfieldname": "parent_account",
    "oldfieldtype": "Link",
    "options": "Account",
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -199,7 +199,7 @@
  "idx": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2020-03-18 17:57:52.063233",
+ "modified": "2020-03-30 16:00:36.815128",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Account",
