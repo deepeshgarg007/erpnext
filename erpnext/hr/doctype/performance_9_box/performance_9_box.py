@@ -10,10 +10,15 @@ class Performance9BOX(Document):
 	pass
 
 @frappe.whitelist()
-def get_employees(designation):
+def get_employees(designation, from_date, to_date):
 	result_wise_map = {}
 	employee_list = frappe.db.get_all('Appraisal', fields=['name', 'employee_name', 'results', 'leadership'],
-		filters={'designation': designation, 'docstatus': 1}, order_by='results, leadership')
+		filters={
+			'designation': designation,
+			'docstatus': 1,
+			'start_date': ('>=', from_date),
+			'end_date': ('<=', to_date),
+		}, order_by='results, leadership')
 
 	for d in employee_list:
 		result_wise_map.setdefault(d.results + d.leadership, [])

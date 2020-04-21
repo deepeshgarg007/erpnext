@@ -16,7 +16,7 @@ frappe.query_reports["Bench Chart"] = {
 			"fieldname":"designation",
 			"label": __("Designation"),
 			"fieldtype": "Link",
-			"options": "designation"
+			"options": "Designation"
 		},
 		{
 			"fieldname":"date_range",

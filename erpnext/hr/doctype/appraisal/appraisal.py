@@ -30,10 +30,10 @@ class Appraisal(Document):
 		return self.employee_name
 
 	def calculate_hi_po(self):
-		if not self.result or self.leadership:
+		if not self.results or self.leadership:
 			return
 
-		if self.result in ('A', 'B') and self.leadership in ('/', '+'):
+		if self.results in ('A', 'B') and self.leadership in ('/', '+'):
 			self.hi_po = 'Yes'
 		else:
 			self.hi_po = 'No'

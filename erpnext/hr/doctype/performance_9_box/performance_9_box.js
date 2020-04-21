@@ -6,15 +6,41 @@ frappe.provide("erpnext.performance_9_box");
 frappe.ui.form.on('Performance 9 BOX', {
 	refresh: function(frm) {
 		frm.disable_save();
+		frm.set_value('from_date', frappe.datetime.add_months(frappe.datetime.nowdate(), -12));
+		frm.set_value('to_date', frappe.datetime.nowdate());
+	},
+
+	from_date: function(frm) {
+		frm.trigger('designation');
+	},
+
+	to_date: function(frm) {
+		frm.trigger('designation');
 	},
 
 	designation: function(frm) {
+
+		if (!frm.doc.designation) {
+			return;
+		}
+
+		if (!frm.doc.from_date || !frm.doc.to_date) {
+			frappe.throw(__('Please enter From Date and To Date'));
+		}
+
+		if (frm.doc.to_date < frm.doc.from_date) {
+			frappe.throw(__('From Date cannot be before To Date'));
+		}
+
 		frappe.call({
 			method: 'erpnext.hr.doctype.performance_9_box.performance_9_box.get_employees',
 			args: {
-				'designation': frm.doc.designation
+				'designation': frm.doc.designation,
+				'from_date': frm.doc.from_date,
+				'to_date': frm.doc.to_date
 			},
 			callback: function(r) {
+				console.log(r);
 				frm.set_df_property('9_box_section', 'hidden', 0);
 				let employee_map = r.message;
 				let results = ['A', 'B', 'C'];

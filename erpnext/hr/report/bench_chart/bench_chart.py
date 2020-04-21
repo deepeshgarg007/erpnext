@@ -34,9 +34,13 @@ def get_data(filters):
 			ORDER BY e.employee, to_date DESC
 		""".format(conditions=conditions), (filters.get('company')), as_dict=1)
 
-	appraisal_data = frappe.db.sql(
-		""" SELECT employee_name, results, leadership, remarks, hi_po
-		FROM `tabAppraisal` WHERE docstatus = 1 """, as_dict=1)
+	query_filters = {'docstatus': 1}
+
+	if filters.get('designation'):
+		query_filters.update({'designation': filters.get('designation')})
+
+	appraisal_data = frappe.db.get_all('Appraisal', fields=['employee_name', 'results', 'leadership', 'hi_po'],
+		filters=query_filters, order_by='results, leadership')
 
 	for d in appraisal_data:
 
