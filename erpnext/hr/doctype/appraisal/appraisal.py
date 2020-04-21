@@ -23,10 +23,20 @@ class Appraisal(Document):
 		self.validate_dates()
 		self.validate_existing_appraisal()
 		self.calculate_total()
+		self.calculate_hi_po()
 
 	def get_employee_name(self):
 		self.employee_name = frappe.db.get_value("Employee", self.employee, "employee_name")
 		return self.employee_name
+
+	def calculate_hi_po(self):
+		if not self.result or self.leadership:
+			return
+
+		if self.result in ('A', 'B') and self.leadership in ('/', '+'):
+			self.hi_po = 'Yes'
+		else:
+			self.hi_po = 'No'
 
 	def validate_dates(self):
 		if getdate(self.start_date) > getdate(self.end_date):
