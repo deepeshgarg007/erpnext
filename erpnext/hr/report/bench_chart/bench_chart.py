@@ -18,6 +18,9 @@ def get_data(filters):
 	employee_detail_map = {}
 	employee_appraisal_map = {}
 
+	if filters.get('designation'):
+		conditions += 'AND designation = %s' % filters.get('designation')
+
 	employee_data = frappe.db.sql(
 		""" SELECT
 				e.employee_name, e.date_of_joining, e.department as current_department, e.designation as current_designation,
@@ -39,8 +42,12 @@ def get_data(filters):
 	if filters.get('designation'):
 		query_filters.update({'designation': filters.get('designation')})
 
-	appraisal_data = frappe.db.get_all('Appraisal', fields=['employee_name', 'results', 'leadership', 'hi_po'],
-		filters=query_filters, order_by='results, leadership')
+	if filters.get('date_range'):
+		query_filters.update({'start_date': (">=", filters.get('date_range')[0])})
+		query_filters.update({'end_date': ("<=", filters.get('date_range')[1])})
+
+	appraisal_data = frappe.db.get_all('Appraisal', fields=['employee_name', 'results', 'leadership',
+		'hi_po', 'remarks'], filters=query_filters, order_by='results, leadership')
 
 	for d in appraisal_data:
 
