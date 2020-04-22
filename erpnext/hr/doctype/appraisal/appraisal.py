@@ -67,11 +67,11 @@ class Appraisal(Document):
 			self.hi_po = 'No'
 
 	def update_managers_rating(self):
-		if not self.get('managers_rating'):
-			for rate in self.get('personal_rating'):
-					self.append('managers_rating', {
-						'kra': rate.kra
-					})
+		self.set('managers_rating', [])
+		for rate in self.get('personal_rating'):
+				self.append('managers_rating', {
+					'kra': rate.kra
+				})
 
 	def update_based_on_managers_rating(self):
 		rating_list = []
