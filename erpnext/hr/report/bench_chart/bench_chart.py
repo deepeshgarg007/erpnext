@@ -78,24 +78,24 @@ def get_data(filters):
 
 		if not employee_detail_map[d.employee_name]['name_title']:
 			name_title = frappe.bold(d.employee_name) + '<br>'
-			name_title += d.current_designation + ', ' + d.current_department + '<br>'
-			name_title += str(getdate(d.to_date or d.date_of_joining).year)
+			name_title += cstr(d.current_designation) + ', ' + cstr(d.current_department) + '<br>'
+			name_title += cstr(getdate(d.to_date or d.date_of_joining).year)
 			employee_detail_map[d.employee_name]['name_title'] = name_title
 
 		if not employee_detail_map[d.employee_name]['department']:
 			employee_detail_map[d.employee_name]['department'] = d.current_department
 
-		company_history = d.previous_designation + ', (' + str(date_diff(d.to_date, d.from_date) // 365) + ')'
+		company_history = cstr(d.previous_designation) + ', (' + cstr(date_diff(d.to_date, d.from_date) // 365) + ')'
 
 		if company_history not in employee_detail_map[d.employee_name]['company_history']:
 			employee_detail_map[d.employee_name]['company_history'].append(company_history)
 
-		previous_experience = d.company_name + ' (' + d.total_experience + ')' + '<br>' + d.designation
+		previous_experience = cstr(d.company_name) + ' (' + cstr(d.total_experience) + ')' + '<br>' + cstr(d.designation)
 
 		if previous_experience not in employee_detail_map[d.employee_name]['previous_experience']:
 			employee_detail_map[d.employee_name]['previous_experience'].append(previous_experience)
 
-		education = d.qualification + ', ' + d.school_univ + '<br>'
+		education = cstr(d.qualification) + ', ' + cstr(d.school_univ) + '<br>'
 
 		if education not in employee_detail_map[d.employee_name]['education']:
 			employee_detail_map[d.employee_name]['education'].append(education)

@@ -25,17 +25,10 @@ frappe.query_reports["Bench Chart"] = {
 		}
 	],
 
-	after_datatable_render: function(datatable_obj) {
-
-		for (i=0; i<= frappe.query_report.data.length; i++) {
-			$(datatable_obj.wrapper).find(`.dt-row-${i}`).css('height', 100);
-		}
-	},
-
 	get_datatable_options(options) {
 		return Object.assign(options, {
 			inlineFilters: false,
-			cellHeight: 100,
+			cellHeight: 100
 		})
 	},
 };
