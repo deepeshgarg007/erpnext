@@ -10,17 +10,21 @@
   "kra_template",
   "employee",
   "employee_name",
+  "designation",
   "column_break0",
   "status",
   "start_date",
   "end_date",
-  "designation",
   "department",
   "section_break0",
   "goals",
   "calculate_total_score",
   "total_score",
   "section_break1",
+  "personal_rating",
+  "section_break_18",
+  "managers_rating",
+  "section_break_20",
   "remarks",
   "strengths",
   "considerations",
@@ -53,15 +57,14 @@
   {
    "fieldname": "kra_template",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_standard_filter": 1,
    "label": "Appraisal Template",
    "oldfieldname": "kra_template",
    "oldfieldtype": "Link",
-   "options": "Appraisal Template",
-   "reqd": 1
+   "options": "Appraisal Template"
   },
   {
-   "depends_on": "kra_template",
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_global_search": 1,
@@ -92,7 +95,6 @@
   },
   {
    "default": "Draft",
-   "depends_on": "kra_template",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_standard_filter": 1,
@@ -106,7 +108,6 @@
    "search_index": 1
   },
   {
-   "depends_on": "kra_template",
    "fieldname": "start_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -116,7 +117,6 @@
    "reqd": 1
   },
   {
-   "depends_on": "kra_template",
    "fieldname": "end_date",
    "fieldtype": "Date",
    "label": "End Date",
@@ -133,9 +133,9 @@
    "read_only": 1
   },
   {
-   "depends_on": "kra_template",
    "fieldname": "section_break0",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Goals",
    "oldfieldtype": "Section Break",
    "options": "Simple"
@@ -143,6 +143,7 @@
   {
    "fieldname": "goals",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Goals",
    "oldfieldname": "appraisal_details",
    "oldfieldtype": "Table",
@@ -151,6 +152,7 @@
   {
    "fieldname": "calculate_total_score",
    "fieldtype": "Button",
+   "hidden": 1,
    "label": "Calculate Total Score",
    "oldfieldtype": "Button",
    "options": "calculate_total"
@@ -158,6 +160,7 @@
   {
    "fieldname": "total_score",
    "fieldtype": "Float",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Total Score (Out of 5)",
    "no_copy": 1,
@@ -166,7 +169,6 @@
    "read_only": 1
   },
   {
-   "depends_on": "kra_template",
    "fieldname": "section_break1",
    "fieldtype": "Section Break"
   },
@@ -227,18 +229,23 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "leadership",
    "fieldtype": "Select",
    "label": "Leadership",
-   "options": "-\n/\n+"
+   "options": "-\n/\n+",
+   "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "results",
    "fieldtype": "Select",
    "label": "Result",
-   "options": "A\nB\nC"
+   "options": "A\nB\nC",
+   "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "hi_po",
    "fieldtype": "Data",
    "hidden": 1,
@@ -254,13 +261,35 @@
    "fieldname": "considerations",
    "fieldtype": "Text Editor",
    "label": "Considerations"
+  },
+  {
+   "fieldname": "personal_rating",
+   "fieldtype": "Table",
+   "label": "Personal Rating",
+   "options": "Appraisal Result",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_18",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "managers_rating",
+   "fieldtype": "Table",
+   "label": "Managers Rating",
+   "options": "Manager Appraisal"
+  },
+  {
+   "fieldname": "section_break_20",
+   "fieldtype": "Section Break"
   }
  ],
  "icon": "fa fa-thumbs-up",
  "idx": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2020-04-22 16:16:13.659348",
+ "modified": "2020-04-22 21:04:04.731910",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Appraisal",

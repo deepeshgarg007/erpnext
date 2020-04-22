@@ -18,6 +18,10 @@ frappe.ui.form.on('Performance 9 BOX', {
 		frm.trigger('designation');
 	},
 
+	employee: function(frm) {
+		frm.trigger('designation');
+	},
+
 	designation: function(frm) {
 
 		if (!frm.doc.designation) {
@@ -37,7 +41,8 @@ frappe.ui.form.on('Performance 9 BOX', {
 			args: {
 				'designation': frm.doc.designation,
 				'from_date': frm.doc.from_date,
-				'to_date': frm.doc.to_date
+				'to_date': frm.doc.to_date,
+				'employee': frm.doc.employee
 			},
 			callback: function(r) {
 				console.log(r);

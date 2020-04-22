@@ -7,9 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "designation",
+  "employee",
   "column_break_2",
   "from_date",
-  "column_break_4",
   "to_date",
   "9_box_section",
   "box"
@@ -47,21 +47,23 @@
    "reqd": 1
   },
   {
-   "fieldname": "column_break_4",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "to_date",
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "To Date",
    "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
   }
  ],
  "hide_toolbar": 1,
  "issingle": 1,
  "links": [],
- "modified": "2020-04-21 21:22:05.238641",
+ "modified": "2020-04-22 19:31:35.536022",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Performance 9 BOX",

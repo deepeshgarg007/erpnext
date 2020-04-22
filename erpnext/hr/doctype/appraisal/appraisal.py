@@ -10,33 +10,109 @@ from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from frappe.model.document import Document
 from erpnext.hr.utils import set_employee_name
+from six import iteritems
 
 class Appraisal(Document):
 	def validate(self):
 		if not self.status:
 			self.status = "Draft"
 
-		if not self.goals:
-			frappe.throw(_("Goals cannot be empty"))
+		# if not self.goals:
+		# 	frappe.throw(_("Goals cannot be empty"))
 
 		set_employee_name(self)
 		self.validate_dates()
 		self.validate_existing_appraisal()
-		self.calculate_total()
+		# self.calculate_total()
 		self.calculate_hi_po()
+		self.update_managers_rating()
+
+	def on_update_after_submit(self):
+		self.update_based_on_managers_rating()
 
 	def get_employee_name(self):
 		self.employee_name = frappe.db.get_value("Employee", self.employee, "employee_name")
 		return self.employee_name
 
-	def calculate_hi_po(self):
-		if not self.results or not self.leadership:
-			return
+	def calculate_hi_po(self, after_submit=0):
+
+		result_map = {
+			'A': 3,
+			'B': 2,
+			'C': 1
+		}
+
+		leadership_map = {
+			'+': 3,
+			'/': 2,
+			'-': 1
+		}
+
+		inv_result_map = {v: k for k, v in iteritems(result_map)}
+		inv_leadership_map = {v: k for k, v in iteritems(leadership_map)}
+
+		rating_list = []
+		leadership_list= []
+
+		for rate in self.get('personal_rating'):
+			rating_list.append(result_map.get(rate.result))
+			leadership_list.append(leadership_map.get(rate.leadership))
+
+		self.results = inv_result_map.get(sum(rating_list)//len(rating_list))
+		self.leadership = inv_leadership_map.get(sum(leadership_list)//len(leadership_list))
 
 		if self.results in ('A', 'B') and self.leadership in ('/', '+'):
 			self.hi_po = 'Yes'
 		else:
 			self.hi_po = 'No'
+
+	def update_managers_rating(self):
+		if not self.get('managers_rating'):
+			for rate in self.get('personal_rating'):
+					self.append('managers_rating', {
+						'kra': rate.kra
+					})
+
+	def update_based_on_managers_rating(self):
+		rating_list = []
+		leadership_list= []
+
+		result_map = {
+			'A': 3,
+			'B': 2,
+			'C': 1
+		}
+
+		leadership_map = {
+			'+': 3,
+			'/': 2,
+			'-': 1
+		}
+
+		inv_result_map = {v: k for k, v in iteritems(result_map)}
+		inv_leadership_map = {v: k for k, v in iteritems(leadership_map)}
+
+		for rate in self.get('managers_rating'):
+			if rate.result:
+				rating_list.append(result_map.get(rate.result))
+			if rate.leadership:
+				leadership_list.append(leadership_map.get(rate.leadership))
+
+		if rating_list and leadership_list:
+			self.results = inv_result_map.get(sum(rating_list)/len(rating_list))
+			self.leadership = inv_leadership_map.get(sum(leadership_list)/len(leadership_list))
+
+		if self.results in ('A', 'B') and self.leadership in ('/', '+'):
+			self.hi_po = 'Yes'
+		else:
+			self.hi_po = 'No'
+
+		frappe.db.set_value("Appraisal", self.name, {
+			'results': self.results,
+			'leadership': self.leadership,
+			'hi_po': self.hi_po
+		})
+
 
 	def validate_dates(self):
 		if getdate(self.start_date) > getdate(self.end_date):
