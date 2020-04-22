@@ -47,7 +47,7 @@ def get_data(filters):
 		query_filters.update({'end_date': ("<=", filters.get('date_range')[1])})
 
 	appraisal_data = frappe.db.get_all('Appraisal', fields=['employee_name', 'results', 'leadership',
-		'hi_po', 'remarks'], filters=query_filters, order_by='results, leadership')
+		'hi_po', 'strengths', 'considerations'], filters=query_filters, order_by='results, leadership')
 
 	for d in appraisal_data:
 
@@ -56,13 +56,14 @@ def get_data(filters):
 
 		employee_appraisal_map.setdefault(d.employee_name, {
 			'rating': [],
-			'remarks': [],
+			'strengths': [],
+			'considerations': [],
 			'hi_po': []
 		})
 
 		employee_appraisal_map[d.employee_name]['rating'].append(d.results + d.leadership)
-		employee_appraisal_map[d.employee_name]['remarks'].append(
-				'<div style="word-wrap: break-word; width: 10px">'+ cstr(d.remarks) + '</div>')
+		employee_appraisal_map[d.employee_name]['strengths'].append(cstr(d.strengths))
+		employee_appraisal_map[d.employee_name]['considerations'].append(cstr(d.considerations))
 		employee_appraisal_map[d.employee_name]['hi_po'].append(d.hi_po)
 
 
@@ -109,7 +110,8 @@ def get_data(filters):
 				row[key] = value
 
 		row['rating'] = '<br>'.join(employee_appraisal_map.get(employee, {}).get('rating') or [])
-		row['remarks'] = '<br>'.join(employee_appraisal_map.get(employee, {}).get('remarks') or [])
+		row['strengths'] = '<br>'.join(employee_appraisal_map.get(employee, {}).get('strengths') or [])
+		row['considerations'] = '<br>'.join(employee_appraisal_map.get(employee, {}).get('considerations') or [])
 
 		row['hi_po'] = 'Yes' if employee_appraisal_map.get(employee, {}).get('hi_po', []).count('Yes') \
 			> employee_appraisal_map.get(employee, {}).get('hi_po', []).count('No') else 'No'
@@ -159,9 +161,15 @@ def get_columns(filters):
 			"width": 60
 		},
 		{
-			"label": _("Remarks"),
+			"label": _("Strengths"),
 			"fieldtype": "Data",
-			"fieldname": "remarks",
+			"fieldname": "strengths",
+			"width": 150
+		},
+		{
+			"label": _("Considerations"),
+			"fieldtype": "Data",
+			"fieldname": "considerations",
 			"width": 150
 		},
 		{

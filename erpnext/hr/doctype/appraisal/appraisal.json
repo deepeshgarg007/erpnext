@@ -22,6 +22,8 @@
   "total_score",
   "section_break1",
   "remarks",
+  "strengths",
+  "considerations",
   "other_details",
   "company",
   "column_break_17",
@@ -172,6 +174,7 @@
    "description": "Any other remarks, noteworthy effort that should go in the records.",
    "fieldname": "remarks",
    "fieldtype": "Text",
+   "hidden": 1,
    "label": "Remarks"
   },
   {
@@ -241,13 +244,23 @@
    "hidden": 1,
    "label": "Hi-Po",
    "read_only": 1
+  },
+  {
+   "fieldname": "strengths",
+   "fieldtype": "Text Editor",
+   "label": "Strengths"
+  },
+  {
+   "fieldname": "considerations",
+   "fieldtype": "Text Editor",
+   "label": "Considerations"
   }
  ],
  "icon": "fa fa-thumbs-up",
  "idx": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2020-04-21 12:58:42.654285",
+ "modified": "2020-04-22 16:16:13.659348",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Appraisal",
