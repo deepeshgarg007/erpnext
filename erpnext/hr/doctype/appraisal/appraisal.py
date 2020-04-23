@@ -98,21 +98,24 @@ class Appraisal(Document):
 			if rate.leadership:
 				leadership_list.append(leadership_map.get(rate.leadership))
 
-		if rating_list and leadership_list:
-			self.results = inv_result_map.get(sum(rating_list)/len(rating_list))
-			self.leadership = inv_leadership_map.get(sum(leadership_list)/len(leadership_list))
+		if rating_list:
+			results = inv_result_map.get(sum(rating_list)/len(rating_list))
 
-		if self.results in ('A', 'B') and self.leadership in ('/', '+'):
-			self.hi_po = 'Yes'
+		if leadership_list:
+			leadership = inv_leadership_map.get(sum(leadership_list)/len(leadership_list))
+
+		if results in ('A', 'B') and leadership in ('/', '+'):
+			hi_po = 'Yes'
 		else:
-			self.hi_po = 'No'
+			hi_po = 'No'
 
 		frappe.db.set_value("Appraisal", self.name, {
-			'results': self.results,
-			'leadership': self.leadership,
-			'hi_po': self.hi_po
+			'results': results,
+			'leadership': leadership,
+			'hi_po': hi_po
 		})
 
+		self.reload()
 
 	def validate_dates(self):
 		if getdate(self.start_date) > getdate(self.end_date):
