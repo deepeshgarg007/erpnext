@@ -19,7 +19,7 @@ def get_data(filters):
 	employee_appraisal_map = {}
 
 	if filters.get('designation'):
-		conditions += 'AND designation = %s' % filters.get('designation')
+		conditions += 'AND e.designation = %s' % frappe.db.escape(filters.get('designation'))
 
 	employee_data = frappe.db.sql(
 		""" SELECT
