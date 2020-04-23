@@ -99,10 +99,10 @@ class Appraisal(Document):
 				leadership_list.append(leadership_map.get(rate.leadership))
 
 		if rating_list:
-			results = inv_result_map.get(sum(rating_list)/len(rating_list))
+			results = inv_result_map.get(sum(rating_list)//len(rating_list))
 
 		if leadership_list:
-			leadership = inv_leadership_map.get(sum(leadership_list)/len(leadership_list))
+			leadership = inv_leadership_map.get(sum(leadership_list)//len(leadership_list))
 
 		if results in ('A', 'B') and leadership in ('/', '+'):
 			hi_po = 'Yes'
