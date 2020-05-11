@@ -11,7 +11,7 @@ from frappe.model.mapper import get_mapped_doc
 from erpnext.accounts.doctype.sales_invoice.pos import update_multi_mode_option
 
 from erpnext.controllers.selling_controller import SellingController
-from erpnext.accounts.utils import get_account_currency
+from erpnext.accounts.utils import get_account_currency, get_fiscal_year
 from erpnext.stock.doctype.delivery_note.delivery_note import update_billed_amount_based_on_so
 from erpnext.projects.doctype.timesheet.timesheet import get_projectwise_timesheet_data
 from erpnext.assets.doctype.asset.depreciation \
@@ -757,6 +757,8 @@ class SalesInvoice(SellingController):
 
 		self.make_item_gl_entries(gl_entries)
 
+		self.make_tds_gl_entries(gl_entries)
+
 		# merge gl entries before adding pos entries
 		gl_entries = merge_similar_entries(gl_entries)
 
@@ -853,6 +855,48 @@ class SalesInvoice(SellingController):
 		if cint(self.update_stock) and \
 			erpnext.is_perpetual_inventory_enabled(self.company):
 			gl_entries += super(SalesInvoice, self).get_gl_entries()
+
+	def make_tds_gl_entries(self, gl_entries):
+		post_tds = frappe.db.get_value('Customer', self.customer, 'post_tds_entries')
+		account_fiscal_year_map = frappe._dict(frappe.get_all('TDS Accounts', fields=['fiscal_year', 'tds_account'],
+			filters={'parent': self.company}, as_list=1))
+
+		gross_tds_account = frappe.db.get_value('Company', self.company, 'gross_tds_account')
+
+		if post_tds:
+			for item in self.get('items'):
+				service_start_date = getdate(item.service_start_date)
+				service_end_date = getdate(item.service_end_date)
+
+				if item.enable_deferred_revenue:
+					no_of_months = (service_end_date.year - service_start_date.year) * 12 + \
+						(service_end_date.month - service_start_date.month)
+
+					for i in range(no_of_months):
+						fiscal_year = get_fiscal_year(date=add_months(service_start_date, i))[0]
+
+						tds_account = account_fiscal_year_map.get(fiscal_year)
+						amount = (item.amount * 10) / (100 * no_of_months)
+
+						gl_entries.append(
+							self.get_gl_dict({
+								"account": tds_account,
+								"against": self.customer,
+								"debit": amount,
+								"debit_in_account_currency": amount,
+								"cost_center": item.cost_center
+							}, self.party_account_currency, item=item)
+						)
+
+						gl_entries.append(
+							self.get_gl_dict({
+								"account": gross_tds_account,
+								"against": self.customer,
+								"credit": amount,
+								"credit_in_account_currency": amount,
+								"cost_center": item.cost_center
+							}, self.party_account_currency, item=item)
+						)
 
 	def make_loyalty_point_redemption_gle(self, gl_entries):
 		if cint(self.redeem_loyalty_points):
