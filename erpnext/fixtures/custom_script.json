@@ -1,0 +1,13 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Custom Script",
+  "dt": "Company",
+  "modified": "2020-05-15 21:17:16.200853",
+  "name": "Company-Client",
+  "parent": null,
+  "parentfield": null,
+  "parenttype": null,
+  "script": "frappe.ui.form.on('Company', {\n\trefresh(frm) {\n\t\tfrm.set_query(\"tds_account\", \"accounts\", function(doc) {\n        \treturn {\n        \t\tfilters: {'company': frm.doc.name}\n        \t}\n        });\n\t}\n})"
+ }
+]

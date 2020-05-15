@@ -539,3 +539,27 @@ global_search_doctypes = {
 		{'doctype': 'Hotel Room Type', 'index': 4}
 	]
 }
+
+fixtures = [
+	{
+		"dt": "DocType",
+		"filters": [["name", "in", [
+			"TDS Accounts"
+		]]]
+	},
+	{
+		"dt": "Custom Field",
+		"filters": [["name", "in", [
+			"Customer-post_tds_entries",
+			"Company-tds_settings",
+			"Company-accounts",
+			"Company-gross_tds_account"
+		]]]
+	},
+	{
+		"dt": "Custom Script",
+		"filters": [["name", "in", [
+			"Company-Client"
+		]]]
+	}
+]
