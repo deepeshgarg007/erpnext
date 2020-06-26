@@ -7,7 +7,7 @@ import json
 from frappe import _
 from frappe import utils
 from frappe.model.document import Document
-from frappe.utils import now, time_diff_in_hours, now_datetime, getdate, get_weekdays, add_to_date, today, get_time, get_datetime
+from frappe.utils import time_diff_in_hours, now_datetime, getdate, get_weekdays, add_to_date, today, get_time, get_datetime, time_diff_in_seconds, time_diff
 from datetime import datetime, timedelta
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils.user import is_website_user
@@ -44,8 +44,8 @@ class Issue(Document):
 				self.contact = frappe.db.get_value("Contact", {"email_id": email_id})
 
 				if self.contact:
-					contact = frappe.get_doc('Contact', self.contact)
-					self.customer = contact.get_link_for('Customer')
+					contact = frappe.get_doc("Contact", self.contact)
+					self.customer = contact.get_link_for("Customer")
 
 			if not self.company:
 				self.company = frappe.db.get_value("Lead", self.lead, "company") or \
@@ -89,6 +89,7 @@ class Issue(Document):
 			replicated_issue.response_by_variance = None
 			replicated_issue.resolution_by = None
 			replicated_issue.resolution_by_variance = None
+			replicated_issue.reset_issue_metrics()
 
 		frappe.get_doc(replicated_issue).insert()
 
@@ -98,7 +99,7 @@ class Issue(Document):
 		communications = frappe.get_all("Communication",
 			filters={"reference_doctype": "Issue",
 				"reference_name": comm_to_split_from.reference_name,
-				"creation": ('>=', comm_to_split_from.creation)})
+				"creation": (">=", comm_to_split_from.creation)})
 
 		for communication in communications:
 			doc = frappe.get_doc("Communication", communication.name)
@@ -116,6 +117,36 @@ class Issue(Document):
 		return replicated_issue.name
 
 
+
+def set_resolution_time(issue):
+	# total time taken from issue creation to closing
+	resolution_time = time_diff_in_seconds(issue.resolution_date, issue.creation)
+	issue.db_set("resolution_time", resolution_time)
+
+
+def set_user_resolution_time(issue):
+	# total time taken by a user to close the issue apart from wait_time
+	communications = frappe.get_list("Communication", filters={
+			"reference_doctype": issue.doctype,
+			"reference_name": issue.name
+		},
+		fields=["sent_or_received", "name", "creation"],
+		order_by="creation"
+	)
+
+	pending_time = []
+	for i in range(len(communications)):
+		if communications[i].sent_or_received == "Received" and communications[i-1].sent_or_received == "Sent":
+			wait_time = time_diff_in_seconds(communications[i].creation, communications[i-1].creation)
+			if wait_time > 0:
+				pending_time.append(wait_time)
+
+	total_pending_time = sum(pending_time)
+	resolution_time_in_secs = time_diff_in_seconds(issue.resolution_date, issue.creation)
+	user_resolution_time = resolution_time_in_secs - total_pending_time
+	issue.db_set("user_resolution_time", user_resolution_time)
+
+
 def get_list_context(context=None):
 	return {
 		"title": _("Issues"),
@@ -123,7 +154,7 @@ def get_list_context(context=None):
 		"row_template": "templates/includes/issue_row.html",
 		"show_sidebar": True,
 		"show_search": True,
-		'no_breadcrumbs': True
+		"no_breadcrumbs": True
 	}
 
 
@@ -131,12 +162,12 @@ def get_issue_list(doctype, txt, filters, limit_start, limit_page_length=20, ord
 	from frappe.www.list import get_list
 
 	user = frappe.session.user
-	contact = frappe.db.get_value('Contact', {'user': user}, 'name')
+	contact = frappe.db.get_value("Contact", {"user": user}, "name")
 	customer = None
 
 	if contact:
-		contact_doc = frappe.get_doc('Contact', contact)
-		customer = contact_doc.get_link_for('Customer')
+		contact_doc = frappe.get_doc("Contact", contact)
+		customer = contact_doc.get_link_for("Customer")
 
 	ignore_permissions = False
 	if is_website_user():

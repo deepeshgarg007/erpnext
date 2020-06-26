@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "format:SLA-{service_level}-{####}",
  "creation": "2018-12-26 21:08:15.448812",
  "doctype": "DocType",
@@ -23,6 +24,8 @@
   "active",
   "column_break_7",
   "end_date",
+  "section_break_18",
+  "pause_sla_on",
   "response_and_resolution_time_section",
   "priorities",
   "support_and_resolution_section_break",
@@ -30,42 +33,31 @@
  ],
  "fields": [
   {
-   "default": "0",
-   "depends_on": "eval: !doc.customer;",
-   "fieldname": "default_service_level_agreement",
-   "fieldtype": "Check",
-   "label": "Default Service Level Agreement"
-  },
-  {
    "fieldname": "service_level",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Service Level",
-   "options": "Service Level",
    "reqd": 1
   },
   {
-   "fetch_from": "service_level.holiday_list",
    "fieldname": "holiday_list",
    "fieldtype": "Link",
    "label": "Holiday List",
    "options": "Holiday List",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "service_level.employee_group",
    "fieldname": "employee_group",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Group",
-   "options": "Employee Group",
-   "read_only": 1
+   "options": "Employee Group"
   },
   {
    "fieldname": "agreement_details_section",
@@ -105,21 +97,15 @@
    "fieldname": "support_and_resolution",
    "fieldtype": "Table",
    "label": "Support and Resolution",
-   "options": "Service Day"
+   "options": "Service Day",
+   "reqd": 1
   },
   {
    "fieldname": "priorities",
    "fieldtype": "Table",
    "label": "Priorities",
-   "options": "Service Level Priority"
-  },
-  {
-   "fetch_from": "service_level.default_priority",
-   "fieldname": "default_priority",
-   "fieldtype": "Link",
-   "label": "Default Priority",
-   "options": "Issue Priority",
-   "read_only": 1
+   "options": "Service Level Priority",
+   "reqd": 1
   },
   {
    "default": "1",
