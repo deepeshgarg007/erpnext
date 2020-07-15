@@ -46,6 +46,10 @@ frappe.ui.form.on('GSTR 3B Report', {
 		frm.set_df_property('year', 'options', options);
 	},
 
+	validate: function(frm) {
+		frm.dirty();
+	},
+
 	setup: function(frm) {
 		frm.set_query('company_address', function(doc) {
 			if(!doc.company) {
