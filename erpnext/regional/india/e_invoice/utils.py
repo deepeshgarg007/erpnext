@@ -371,12 +371,13 @@ def validate_mandatory_fields(invoice):
 		)
 	if not frappe.db.get_value('Address', invoice.company_address, 'gstin'):
 		frappe.throw(
-			_('GSTIN is mandatory to fetch company GSTIN details. Please enter GSTIN in selected company address.'),
+			_('Customer Address is mandatory to fetch customer GSTIN details. Please set Company Address and try again.'),
 			title=_('Missing Fields')
 		)
-	if invoice.gst_category != 'Overseas' and not frappe.db.get_value('Address', invoice.customer_address, 'gstin'):
+	if not frappe.db.get_value('Address', invoice.company_address, 'gstin'):
 		frappe.throw(
-			_('GSTIN is mandatory to fetch customer GSTIN details. Please enter GSTIN in selected customer address.'),
+			_('GSTIN is mandatory to fetch company GSTIN details. Please enter GSTIN in selected company address.'),
+	@@ -348,6 +378,39 @@ def validate_mandatory_fields(invoice):
 			title=_('Missing Fields')
 		)
 
@@ -438,14 +439,12 @@ def make_einvoice(invoice):
 
 	seller_details.update(dict(legal_name=invoice.company))
 	buyer_details.update(dict(legal_name=invoice.customer_name or invoice.customer))
-
 	shipping_details = payment_details = prev_doc_details = eway_bill_details = frappe._dict({})
 	if invoice.shipping_address_name and invoice.customer_address != invoice.shipping_address_name:
 		if invoice.gst_category == 'Overseas':
 			shipping_details = get_overseas_address_details(invoice.shipping_address_name)
 		else:
 			shipping_details = get_party_details(invoice.shipping_address_name, shipping_address=True)
-
 	if invoice.is_pos and invoice.base_paid_amount:
 		payment_details = get_payment_details(invoice)
 
