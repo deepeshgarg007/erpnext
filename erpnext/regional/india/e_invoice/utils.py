@@ -39,7 +39,7 @@ def validate_eligibility(doc):
 	company_transaction = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	no_taxes_applied = not doc.get('taxes')
 
-	if invalid_supply_type or company_transaction or no_taxes_applied:
+	if invalid_company or invalid_supply_type or company_transaction or no_taxes_applied:
 		return False
 
 	return True
@@ -438,14 +438,14 @@ def make_einvoice(invoice):
 
 	seller_details.update(dict(legal_name=invoice.company))
 	buyer_details.update(dict(legal_name=invoice.customer_name or invoice.customer))
-	
+
 	shipping_details = payment_details = prev_doc_details = eway_bill_details = frappe._dict({})
 	if invoice.shipping_address_name and invoice.customer_address != invoice.shipping_address_name:
 		if invoice.gst_category == 'Overseas':
 			shipping_details = get_overseas_address_details(invoice.shipping_address_name)
 		else:
 			shipping_details = get_party_details(invoice.shipping_address_name, shipping_address=True)
-	
+
 	if invoice.is_pos and invoice.base_paid_amount:
 		payment_details = get_payment_details(invoice)
 
@@ -465,7 +465,7 @@ def make_einvoice(invoice):
 		period_details=period_details, prev_doc_details=prev_doc_details,
 		export_details=export_details, eway_bill_details=eway_bill_details
 	)
-	
+
 	try:
 		einvoice = safe_json_load(einvoice)
 		einvoice = santize_einvoice_fields(einvoice)
