@@ -64,11 +64,11 @@ class OpeningInvoiceCreationTool(Document):
 			prepare_invoice_summary(doctype, invoices)
 
 		return invoices_summary, max_count
-	
+
 	def validate_company(self):
 		if not self.company:
 			frappe.throw(_("Please select the Company"))
-	
+
 	def set_missing_values(self, row):
 		row.qty = row.qty or 1.0
 		row.temporary_opening_account = row.temporary_opening_account or get_temporary_opening_account(self.company)
@@ -124,7 +124,8 @@ class OpeningInvoiceCreationTool(Document):
 
 	def get_invoice_dict(self, row=None):
 		def get_item_dict():
-			cost_center = row.get('cost_center') or frappe.get_cached_value('Company', self.company,  "cost_center")
+			cost_center = row.get('cost_center') or self.get('cost_center') or \
+				frappe.get_cached_value('Company', self.company,  "cost_center")
 			if not cost_center:
 				frappe.throw(_("Please set the Default Cost Center in {0} company.").format(frappe.bold(self.company)))
 
