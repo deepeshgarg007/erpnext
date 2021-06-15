@@ -503,16 +503,61 @@ def is_reposting_pending():
 	return frappe.db.exists("Repost Item Valuation",
 		{'docstatus': 1, 'status': ['in', ['Queued','In Progress']]})
 
+def future_sle_exists(args, sl_entries=None):
+	key = (args.voucher_type, args.voucher_no)
 
-def future_sle_exists(args):
-	sl_entries = frappe.get_all("Stock Ledger Entry",
+	if hasattr(frappe.local, 'future_sle') and not frappe.local.future_sle.get(key):
+		return False
+	elif get_cached_data(args, key):
+		return True
+
+	if not sl_entries:
+		sl_entries = get_sle_entries_against_voucher(args)
+		if not sl_entries:
+			return
+
+	or_conditions = get_conditions_to_validate_future_sle(sl_entries)
+
+	data = frappe.db.sql("""
+		select item_code, warehouse, count(name) as total_row
+		from `tabStock Ledger Entry`
+		where
+			({})
+			and timestamp(posting_date, posting_time)
+				>= timestamp(%(posting_date)s, %(posting_time)s)
+			and voucher_no != %(voucher_no)s
+			and is_cancelled = 0
+		GROUP BY
+			item_code, warehouse
+		""".format(" or ".join(or_conditions)), args, as_dict=1)
+
+	for d in data:
+		frappe.local.future_sle[key][(d.item_code, d.warehouse)] = d.total_row
+
+	return len(data)
+
+def get_cached_data(args, key):
+	if not hasattr(frappe.local, 'future_sle'):
+		frappe.local.future_sle = {}
+
+	if key not in frappe.local.future_sle:
+		frappe.local.future_sle[key] = frappe._dict({})
+
+	if args.get('item_code'):
+		item_key = (args.get('item_code'), args.get('warehouse'))
+		count = frappe.local.future_sle[key].get(item_key)
+
+		return True if (count or count == 0) else False
+	else:
+		return frappe.local.future_sle[key]
+
+def get_sle_entries_against_voucher(args):
+	frappe.get_all("Stock Ledger Entry",
 		filters={"voucher_type": args.voucher_type, "voucher_no": args.voucher_no},
 		fields=["item_code", "warehouse"],
 		order_by="creation asc")
 
-	if not sl_entries:
-		return
-
+def get_conditions_to_validate_future_sle(sl_entries):
 	warehouse_items_map = {}
 	for entry in sl_entries:
 		if entry.warehouse not in warehouse_items_map:
@@ -529,17 +574,7 @@ def future_sle_exists(args):
 			)
 		)
 
-	return frappe.db.sql("""
-		select name
-		from `tabStock Ledger Entry`
-		where
-			({})
-			and timestamp(posting_date, posting_time)
-				>= timestamp(%(posting_date)s, %(posting_time)s)
-			and voucher_no != %(voucher_no)s
-			and is_cancelled = 0
-		limit 1
-		""".format(" or ".join(or_conditions)), args)
+	return or_conditions
 
 def create_repost_item_valuation_entry(args):
 	args = frappe._dict(args)
