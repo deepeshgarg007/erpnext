@@ -506,7 +506,7 @@ def is_reposting_pending():
 def future_sle_exists(args, sl_entries=None):
 	key = (args.voucher_type, args.voucher_no)
 
-	if hasattr(frappe.local, 'future_sle') and not frappe.local.future_sle.get(key):
+	if validate_future_sle_not_exists(args, key, sl_entries):
 		return False
 	elif get_cached_data(args, key):
 		return True
@@ -536,6 +536,16 @@ def future_sle_exists(args, sl_entries=None):
 
 	return len(data)
 
+def validate_future_sle_not_exists(args, key, sl_entries=None):
+	item_key = ''
+	if args.get('item_code'):
+		item_key = (args.get('item_code'), args.get('warehouse'))
+
+	if not sl_entries and hasattr(frappe.local, 'future_sle'):
+		if (not frappe.local.future_sle.get(key) or
+			(item_key and item_key not in frappe.local.future_sle.get(key))):
+			return True
+
 def get_cached_data(args, key):
 	if not hasattr(frappe.local, 'future_sle'):
 		frappe.local.future_sle = {}
@@ -552,7 +562,7 @@ def get_cached_data(args, key):
 		return frappe.local.future_sle[key]
 
 def get_sle_entries_against_voucher(args):
-	frappe.get_all("Stock Ledger Entry",
+	return frappe.get_all("Stock Ledger Entry",
 		filters={"voucher_type": args.voucher_type, "voucher_no": args.voucher_no},
 		fields=["item_code", "warehouse"],
 		order_by="creation asc")
