@@ -1,7 +1,8 @@
 {
+ "actions": [],
  "allow_copy": 1,
  "beta": 1,
- "creation": "2017-08-29 02:22:54.947711",
+ "creation": "2022-01-25 10:29:57.424008",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -75,7 +76,8 @@
  ],
  "hide_toolbar": 1,
  "issingle": 1,
- "modified": "2022-01-04 15:25:06.053187",
+ "links": [],
+ "modified": "2022-05-31 22:01:30.700195",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Opening Invoice Creation Tool",
@@ -89,10 +91,31 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
   }
  ],
  "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }
