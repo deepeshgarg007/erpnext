@@ -202,6 +202,7 @@ def make_accrual_interest_entry_for_term_loans(
 				"repayment_schedule_name": loan.payment_entry,
 				"posting_date": posting_date,
 				"accrual_type": accrual_type,
+				"due_date": loan.payment_date,
 			}
 		)
 
@@ -268,6 +269,7 @@ def make_loan_interest_accrual_entry(args):
 	loan_interest_accrual.repayment_schedule_name = args.repayment_schedule_name
 	loan_interest_accrual.payable_principal_amount = args.payable_principal
 	loan_interest_accrual.accrual_type = args.accrual_type
+	loan_interest_accrual.due_date = args.due_date
 
 	loan_interest_accrual.save()
 	loan_interest_accrual.submit()

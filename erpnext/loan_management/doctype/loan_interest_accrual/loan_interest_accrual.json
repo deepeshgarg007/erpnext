@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "loan",
+  "loan_type",
   "applicant_type",
   "applicant",
   "interest_income_account",
@@ -14,6 +15,7 @@
   "column_break_4",
   "company",
   "posting_date",
+  "due_date",
   "accrual_type",
   "is_term_loan",
   "section_break_7",
@@ -187,13 +189,27 @@
    "fieldtype": "Currency",
    "label": "Total Pending Interest Amount",
    "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fetch_from": "loan.loan_type",
+   "fieldname": "loan_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Loan Type",
+   "options": "Loan Type",
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-06-30 11:51:31.911794",
+ "modified": "2023-04-22 19:08:42.718173",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Interest Accrual",

@@ -31,6 +31,7 @@
   "repayment_periods",
   "monthly_repayment_amount",
   "repayment_start_date",
+  "days_past_due",
   "is_term_loan",
   "accounting_dimensions_section",
   "cost_center",
@@ -51,10 +52,11 @@
   "refund_amount",
   "debit_adjustment_amount",
   "credit_adjustment_amount",
-  "is_npa",
   "column_break_19",
   "total_interest_payable",
   "total_amount_paid",
+  "is_npa",
+  "manual_npa",
   "amended_from"
  ],
  "fields": [
@@ -400,7 +402,7 @@
   },
   {
    "default": "0",
-   "description": "Mark Loan as a Nonperforming asset",
+   "description": "Loan is a Non Performing Asset",
    "fieldname": "is_npa",
    "fieldtype": "Check",
    "label": "Is NPA"
@@ -412,12 +414,26 @@
    "fieldtype": "Data",
    "label": "Repayment Schedule Type",
    "read_only": 1
+  },
+  {
+   "fieldname": "days_past_due",
+   "fieldtype": "Int",
+   "label": "Days Past Due",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "description": "Manually marked as NPA",
+   "fieldname": "manual_npa",
+   "fieldtype": "Check",
+   "label": "Manual NPA"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-09-30 10:36:47.902903",
+ "modified": "2023-04-22 20:18:20.577211",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

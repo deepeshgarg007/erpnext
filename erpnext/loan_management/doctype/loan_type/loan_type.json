@@ -18,12 +18,14 @@
   "disabled",
   "repayment_schedule_type",
   "repayment_date_on",
+  "days_past_due_threshold_for_npa",
   "description",
   "account_details_section",
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
   "column_break_12",
+  "use_separate_accounts_for_npa_loans",
   "loan_account",
   "interest_income_account",
   "penalty_income_account",
@@ -177,12 +179,24 @@
    "label": "Repayment Date On",
    "mandatory_depends_on": "eval:doc.repayment_schedule_type == \"Pro-rated calendar months\"",
    "options": "\nStart of the next month\nEnd of the current month"
+  },
+  {
+   "description": "Loans will be marked as NPA when the days past due count exceed this threshold",
+   "fieldname": "days_past_due_threshold_for_npa",
+   "fieldtype": "Int",
+   "label": "Days Past Due Threshold for NPA"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_separate_accounts_for_npa_loans",
+   "fieldtype": "Check",
+   "label": "Use Separate Accounts For NPA Loans"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-10-22 17:43:03.954201",
+ "modified": "2023-04-22 20:48:23.088365",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

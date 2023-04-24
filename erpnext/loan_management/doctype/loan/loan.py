@@ -609,3 +609,74 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 		refund_jv.submit()
 
 	return refund_jv
+
+
+def update_days_past_due_in_loans():
+	"""Update days past due in loans"""
+	accruals = get_pending_loan_interest_accruals()
+	threshold_map = get_dpd_threshold_map()
+	for loan in accruals:
+		is_npa = 0
+		days_past_due = date_diff(getdate(loan.due_date), getdate())
+		threshold = threshold_map.get(loan.loan_type, 0)
+
+		if days_past_due and threshold and days_past_due > threshold:
+			is_npa = 1
+
+		update_loan_and_customer_status(loan.loan, loan.applicant_type, loan.applicant, is_npa)
+
+
+def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_due, is_npa):
+	frappe.db.set_value("Loan", loan, "days_past_due", days_past_due)
+
+	if is_npa:
+		loan = frappe.qb.DocType("Loan")
+		frappe.qb.update("Loan").set(loan.is_npa, is_npa).set(loan.manual_npa, is_npa).where(
+			loan.docstatus
+			== 1 & loan.status.isin(["Disbursed", "Partially Disbursed"]) & loan.applicant_type
+			== applicant_type & loan.applicant
+			== applicant
+		).run()
+	else:
+		max_dpd = frappe.db.get_value(
+			"Loan", {"applicant_type": applicant_type, "applicant": applicant}["MAX(days_past_due)"]
+		)
+
+		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
+		if max_dpd == 0:
+			loan = frappe.qb.DocType("Loan")
+			frappe.qb.update("Loan").set(loan.is_npa, 0).where(
+				loan.docstatus
+				== 1 & loan.status.isin(["Disbursed", "Partially Disbursed"]) & loan.applicant_type
+				== applicant_type & loan.applicant
+				== applicant
+			).run()
+
+
+def get_pending_loan_interest_accruals():
+	"""Get pending loan interest accruals"""
+	loan_interest_accrual = frappe.qb.DocType("Loan Interest Accrual")
+
+	return (
+		frappe.qb.from_(loan_interest_accrual)
+		.select(
+			loan_interest_accrual.loan, loan_interest_accrual.loan_type, loan_interest_accrual.due_date
+		)
+		.where(
+			(loan_interest_accrual.docstatus == 1)
+			& (
+				(loan_interest_accrual.interest_amount > loan_interest_accrual.paid_interest_amount)
+				| (
+					loan_interest_accrual.payable_principal_amount > loan_interest_accrual.paid_principal_amount
+				)
+			)
+		)
+		.orderby(loan_interest_accrual.due_date)
+		.run(as_dict=True)
+	)
+
+
+def get_dpd_threshold_map():
+	return frappe._dict(
+		frappe.get_all("Loan Type", fields=["name", "days_past_due_threshold_for_npa"], as_list=1)
+	)
