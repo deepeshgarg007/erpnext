@@ -611,19 +611,22 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 	return refund_jv
 
 
-def update_days_past_due_in_loans():
+@frappe.whitelist()
+def update_days_past_due_in_loans(posting_date=None):
 	"""Update days past due in loans"""
 	accruals = get_pending_loan_interest_accruals()
 	threshold_map = get_dpd_threshold_map()
 	for loan in accruals:
 		is_npa = 0
-		days_past_due = date_diff(getdate(loan.due_date), getdate())
+		days_past_due = date_diff(getdate(posting_date), getdate(loan.due_date))
 		threshold = threshold_map.get(loan.loan_type, 0)
 
 		if days_past_due and threshold and days_past_due > threshold:
 			is_npa = 1
 
-		update_loan_and_customer_status(loan.loan, loan.applicant_type, loan.applicant, is_npa)
+		update_loan_and_customer_status(
+			loan.loan, loan.applicant_type, loan.applicant, days_past_due, is_npa
+		)
 
 
 def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_due, is_npa):
@@ -639,7 +642,7 @@ def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_d
 		).run()
 	else:
 		max_dpd = frappe.db.get_value(
-			"Loan", {"applicant_type": applicant_type, "applicant": applicant}["MAX(days_past_due)"]
+			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
 		)
 
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""

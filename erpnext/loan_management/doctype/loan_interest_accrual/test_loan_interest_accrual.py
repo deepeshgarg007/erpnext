@@ -6,8 +6,10 @@ import unittest
 import frappe
 from frappe.utils import add_to_date, date_diff, flt, get_datetime, get_first_day, nowdate
 
+from erpnext.loan_management.doctype.loan.loan import update_days_past_due_in_loans
 from erpnext.loan_management.doctype.loan.test_loan import (
 	create_demand_loan,
+	create_loan,
 	create_loan_accounts,
 	create_loan_application,
 	create_loan_security,
@@ -22,6 +24,7 @@ from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual
 )
 from erpnext.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual import (
 	process_loan_interest_accrual_for_demand_loans,
+	process_loan_interest_accrual_for_term_loans,
 )
 from erpnext.selling.doctype.customer.test_customer import get_customer_dict
 
@@ -43,6 +46,25 @@ class TestLoanInterestAccrual(unittest.TestCase):
 			"Loan Account - _TC",
 			"Interest Income Account - _TC",
 			"Penalty Income Account - _TC",
+		)
+
+		create_loan_type(
+			loan_name="Term Loan With DPD",
+			maximum_loan_amount=2000000,
+			rate_of_interest=10,
+			penalty_interest_rate=25,
+			is_term_loan=1,
+			grace_period_in_days=5,
+			mode_of_payment="Cash",
+			disbursement_account="Disbursement Account - _TC",
+			payment_account="Payment Account - _TC",
+			loan_account="Loan Account - _TC",
+			interest_income_account="Interest Income Account - _TC",
+			penalty_income_account="Penalty Income Account - _TC",
+			repayment_method="Repay Over Number of Periods",
+			repayment_periods=12,
+			repayment_schedule_type="Monthly as per repayment start date",
+			days_past_due_threshold_for_npa=90,
 		)
 
 		create_loan_security_type()
@@ -82,6 +104,28 @@ class TestLoanInterestAccrual(unittest.TestCase):
 		loan_interest_accural = frappe.get_doc("Loan Interest Accrual", {"loan": loan.name})
 
 		self.assertEqual(flt(loan_interest_accural.interest_amount, 0), flt(accrued_interest_amount, 0))
+
+	def test_dpd_calculation(self):
+		loan = create_loan(
+			applicant=self.applicant,
+			loan_type="Term Loan With DPD",
+			loan_amount=1200000,
+			repayment_method="Repay Over Number of Periods",
+			repayment_periods=12,
+			applicant_type="Customer",
+			repayment_start_date="2023-01-31",
+			posting_date="2023-01-01",
+		)
+		loan.submit()
+
+		make_loan_disbursement_entry(loan.name, loan.loan_amount, disbursement_date="2023-02-01")
+		process_loan_interest_accrual_for_term_loans(posting_date="2023-02-01")
+		update_days_past_due_in_loans(posting_date="2023-02-02")
+
+		self.assertEqual(frappe.db.get_value("Loan", loan.name, "days_past_due"), 2)
+
+		update_days_past_due_in_loans(posting_date="2023-02-05")
+		self.assertEqual(frappe.db.get_value("Loan", loan.name, "days_past_due"), 5)
 
 	def test_accumulated_amounts(self):
 		pledge = [{"loan_security": "Test Security 1", "qty": 4000.00}]

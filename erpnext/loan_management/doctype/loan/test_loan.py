@@ -1153,6 +1153,7 @@ def create_loan_type(
 	repayment_periods=None,
 	repayment_schedule_type=None,
 	repayment_date_on=None,
+	days_past_due_threshold_for_npa=None,
 ):
 
 	if not frappe.db.exists("Loan Type", loan_name):
@@ -1176,6 +1177,7 @@ def create_loan_type(
 				"repayment_method": repayment_method,
 				"repayment_periods": repayment_periods,
 				"write_off_amount": 100,
+				"days_past_due_threshold_for_npa": days_past_due_threshold_for_npa,
 			}
 		)
 
