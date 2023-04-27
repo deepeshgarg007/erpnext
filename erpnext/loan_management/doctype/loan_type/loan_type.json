@@ -24,11 +24,13 @@
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
+  "penalty_income_account",
   "column_break_12",
   "use_separate_accounts_for_npa_loans",
   "loan_account",
   "interest_income_account",
-  "penalty_income_account",
+  "suspense_interest_receivable",
+  "suspense_interest_income",
   "amended_from"
  ],
  "fields": [
@@ -191,12 +193,28 @@
    "fieldname": "use_separate_accounts_for_npa_loans",
    "fieldtype": "Check",
    "label": "Use Separate Accounts For NPA Loans"
+  },
+  {
+   "depends_on": "use_separate_accounts_for_npa_loans",
+   "fieldname": "suspense_interest_receivable",
+   "fieldtype": "Link",
+   "label": "Suspense Interest Receivable",
+   "mandatory_depends_on": "use_separate_accounts_for_npa_loans",
+   "options": "Account"
+  },
+  {
+   "depends_on": "use_separate_accounts_for_npa_loans",
+   "fieldname": "suspense_interest_income",
+   "fieldtype": "Link",
+   "label": "Suspense Interest Income",
+   "mandatory_depends_on": "use_separate_accounts_for_npa_loans",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-22 20:48:23.088365",
+ "modified": "2023-04-26 15:17:09.756118",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

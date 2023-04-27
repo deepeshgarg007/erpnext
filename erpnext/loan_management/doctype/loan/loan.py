@@ -614,6 +614,8 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 @frappe.whitelist()
 def update_days_past_due_in_loans(posting_date=None):
 	"""Update days past due in loans"""
+	posting_date = posting_date or getdate()
+
 	accruals = get_pending_loan_interest_accruals()
 	threshold_map = get_dpd_threshold_map()
 	for loan in accruals:
@@ -627,6 +629,19 @@ def update_days_past_due_in_loans(posting_date=None):
 		update_loan_and_customer_status(
 			loan.loan, loan.applicant_type, loan.applicant, days_past_due, is_npa
 		)
+
+		create_dpd_record(loan, posting_date, days_past_due)
+
+
+def create_dpd_record(loan, posting_date, days_past_due):
+	frappe.get_doc(
+		{
+			"doctype": "Days Past Due Log",
+			"loan": loan.loan,
+			"posting_date": posting_date,
+			"days_past_due": days_past_due,
+		}
+	).insert(ignore_permissions=True)
 
 
 def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_due, is_npa):
@@ -647,13 +662,7 @@ def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_d
 
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
 		if max_dpd == 0:
-			loan = frappe.qb.DocType("Loan")
-			frappe.qb.update("Loan").set(loan.is_npa, 0).where(
-				loan.docstatus
-				== 1 & loan.status.isin(["Disbursed", "Partially Disbursed"]) & loan.applicant_type
-				== applicant_type & loan.applicant
-				== applicant
-			).run()
+			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 
 
 def get_pending_loan_interest_accruals():
