@@ -6,7 +6,6 @@ import unittest
 import frappe
 from frappe.utils import add_to_date, date_diff, flt, get_datetime, get_first_day, nowdate
 
-from erpnext.loan_management.doctype.loan.loan import update_days_past_due_in_loans
 from erpnext.loan_management.doctype.loan.test_loan import (
 	create_demand_loan,
 	create_loan,
@@ -21,6 +20,9 @@ from erpnext.loan_management.doctype.loan.test_loan import (
 from erpnext.loan_management.doctype.loan_application.loan_application import create_pledge
 from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
 	days_in_year,
+)
+from erpnext.loan_management.doctype.process_asset_classification.process_asset_classification import (
+	create_process_asset_classification,
 )
 from erpnext.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual import (
 	process_loan_interest_accrual_for_demand_loans,
@@ -120,12 +122,59 @@ class TestLoanInterestAccrual(unittest.TestCase):
 
 		make_loan_disbursement_entry(loan.name, loan.loan_amount, disbursement_date="2023-02-01")
 		process_loan_interest_accrual_for_term_loans(posting_date="2023-02-01")
-		update_days_past_due_in_loans(posting_date="2023-02-02")
+		create_process_asset_classification(
+			posting_date="2023-02-02", loan_type=loan.loan_type, loan=loan.name
+		)
 
-		self.assertEqual(frappe.db.get_value("Loan", loan.name, "days_past_due"), 2)
+		loan_details = frappe.db.get_value(
+			"Loan",
+			loan.name,
+			["days_past_due", "asset_classification_code", "asset_classification_name"],
+			as_dict=1,
+		)
 
-		update_days_past_due_in_loans(posting_date="2023-02-05")
-		self.assertEqual(frappe.db.get_value("Loan", loan.name, "days_past_due"), 5)
+		self.assertEqual(loan_details.days_past_due, 2)
+		self.assertEqual(loan_details.asset_classification_code, "SMA-0")
+		self.assertEqual(loan_details.asset_classification_name, "Special Mention Account - 0")
+
+		create_process_asset_classification(
+			posting_date="2023-04-05", loan_type=loan.loan_type, loan=loan.name
+		)
+		loan_details = frappe.db.get_value(
+			"Loan",
+			loan.name,
+			["days_past_due", "asset_classification_code", "asset_classification_name"],
+			as_dict=1,
+		)
+
+		self.assertEqual(loan_details.days_past_due, 64)
+		self.assertEqual(loan_details.asset_classification_code, "SMA-2")
+		self.assertEqual(loan_details.asset_classification_name, "Special Mention Account - 2")
+
+		create_process_asset_classification(
+			posting_date="2023-07-05", loan_type=loan.loan_type, loan=loan.name
+		)
+		loan_details = frappe.db.get_value(
+			"Loan",
+			loan.name,
+			[
+				"days_past_due",
+				"asset_classification_code",
+				"asset_classification_name",
+				"is_npa",
+				"manual_npa",
+			],
+			as_dict=1,
+		)
+
+		applicant_status = frappe.db.get_value("Customer", self.applicant, "is_npa")
+
+		self.assertEqual(loan_details.days_past_due, 155)
+		self.assertEqual(loan_details.asset_classification_code, "D1")
+		self.assertEqual(loan_details.asset_classification_name, "Substandard Asset")
+		self.assertEqual(loan_details.is_npa, 1)
+		self.assertEqual(loan_details.manual_npa, 1)
+		self.assertEqual(applicant_status, 1)
 
 	def test_accumulated_amounts(self):
 		pledge = [{"loan_security": "Test Security 1", "qty": 4000.00}]

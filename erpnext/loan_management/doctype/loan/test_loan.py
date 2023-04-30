@@ -1288,8 +1288,7 @@ def create_loan_security_price(loan_security, loan_security_price, uom, from_dat
 		).insert(ignore_permissions=True)
 
 
-def create_repayment_entry(loan, applicant, posting_date, paid_amount):
-
+def create_repayment_entry(loan, applicant, posting_date, paid_amount, offset_based_on_npa=0):
 	lr = frappe.get_doc(
 		{
 			"doctype": "Loan Repayment",
@@ -1299,6 +1298,7 @@ def create_repayment_entry(loan, applicant, posting_date, paid_amount):
 			"applicant": applicant,
 			"amount_paid": paid_amount,
 			"loan_type": "Stock Loan",
+			"offset_based_on_npa": offset_based_on_npa,
 		}
 	).insert(ignore_permissions=True)
 
