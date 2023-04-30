@@ -417,7 +417,7 @@ scheduler_events = {
 		"erpnext.manufacturing.doctype.bom_update_tool.bom_update_tool.auto_update_latest_price_in_all_boms",
 		"erpnext.loan_management.doctype.process_loan_security_shortfall.process_loan_security_shortfall.create_process_loan_security_shortfall",
 		"erpnext.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual.process_loan_interest_accrual_for_term_loans",
-		"erpnext.loan_management.doctype.loan.loan.update_days_past_due_in_loans",
+		"erpnext.loan_management.doctype.process_asset_classification.process_asset_classification.create_process_asset_classification",
 		"erpnext.crm.utils.open_leads_opportunities_based_on_todays_event",
 	],
 	"monthly_long": [
