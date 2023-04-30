@@ -24,13 +24,11 @@
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
-  "penalty_income_account",
   "column_break_12",
   "use_separate_accounts_for_npa_loans",
   "loan_account",
   "interest_income_account",
-  "suspense_interest_receivable",
-  "suspense_interest_income",
+  "penalty_income_account",
   "amended_from"
  ],
  "fields": [
@@ -171,7 +169,7 @@
    "fieldtype": "Select",
    "label": "Repayment Schedule Type",
    "mandatory_depends_on": "is_term_loan",
-   "options": "\nMonthly as per repayment start date\nPro-rated calendar months"
+   "options": "\nMonthly as per repayment start date\nPro-rated calendar months\nMonthly as per cycle date"
   },
   {
    "depends_on": "eval:doc.repayment_schedule_type == \"Pro-rated calendar months\"",
@@ -193,28 +191,12 @@
    "fieldname": "use_separate_accounts_for_npa_loans",
    "fieldtype": "Check",
    "label": "Use Separate Accounts For NPA Loans"
-  },
-  {
-   "depends_on": "use_separate_accounts_for_npa_loans",
-   "fieldname": "suspense_interest_receivable",
-   "fieldtype": "Link",
-   "label": "Suspense Interest Receivable",
-   "mandatory_depends_on": "use_separate_accounts_for_npa_loans",
-   "options": "Account"
-  },
-  {
-   "depends_on": "use_separate_accounts_for_npa_loans",
-   "fieldname": "suspense_interest_income",
-   "fieldtype": "Link",
-   "label": "Suspense Interest Income",
-   "mandatory_depends_on": "use_separate_accounts_for_npa_loans",
-   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-26 15:17:09.756118",
+ "modified": "2023-04-27 19:01:17.514694",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

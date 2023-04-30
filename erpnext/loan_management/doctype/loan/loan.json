@@ -32,6 +32,8 @@
   "monthly_repayment_amount",
   "repayment_start_date",
   "days_past_due",
+  "asset_classification_code",
+  "asset_classification_name",
   "is_term_loan",
   "accounting_dimensions_section",
   "cost_center",
@@ -405,7 +407,8 @@
    "description": "Loan is a Non Performing Asset",
    "fieldname": "is_npa",
    "fieldtype": "Check",
-   "label": "Is NPA"
+   "label": "Is NPA",
+   "read_only": 1
   },
   {
    "depends_on": "is_term_loan",
@@ -428,12 +431,24 @@
    "fieldname": "manual_npa",
    "fieldtype": "Check",
    "label": "Manual NPA"
+  },
+  {
+   "fieldname": "asset_classification_code",
+   "fieldtype": "Select",
+   "label": "Asset Classification Code",
+   "options": "\nSMA-0\nSMA-1\nSMA-2\nD1\nD2\nD3"
+  },
+  {
+   "fieldname": "asset_classification_name",
+   "fieldtype": "Select",
+   "label": "Asset Classification Name",
+   "options": "\nSpecial Mention Account - 1\nSpecial Mention Account - 2\nSpecial Mention Account - 3\nSubstandard Asset\nDoubtful Asset\nLoss Asset"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-22 20:18:20.577211",
+ "modified": "2023-04-29 18:21:31.309606",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

@@ -1,10 +1,12 @@
 {
+ "actions": [],
  "creation": "2019-09-12 12:57:07.940159",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "payment_date",
+  "number_of_days",
   "principal_amount",
   "interest_amount",
   "total_payment",
@@ -65,10 +67,16 @@
    "in_list_view": 1,
    "label": "Is Accrued",
    "read_only": 1
+  },
+  {
+   "fieldname": "number_of_days",
+   "fieldtype": "Int",
+   "label": "Number Of Days"
   }
  ],
  "istable": 1,
- "modified": "2019-09-12 12:57:07.940159",
+ "links": [],
+ "modified": "2023-04-27 19:24:05.440274",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Repayment Schedule",
@@ -77,5 +85,6 @@
  "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }

@@ -7,6 +7,7 @@ import math
 
 import frappe
 from frappe import _
+from frappe.query_builder import Order
 from frappe.utils import (
 	add_days,
 	add_months,
@@ -125,7 +126,7 @@ class Loan(AccountsController):
 		balance_amount = self.loan_amount
 
 		while balance_amount > 0:
-			interest_amount, principal_amount, balance_amount, total_payment = self.get_amounts(
+			interest_amount, principal_amount, balance_amount, total_payment, days = self.get_amounts(
 				payment_date,
 				balance_amount,
 				schedule_type_details.repayment_schedule_type,
@@ -140,11 +141,12 @@ class Loan(AccountsController):
 				payment_date = next_payment_date
 
 			self.add_repayment_schedule_row(
-				payment_date, principal_amount, interest_amount, total_payment, balance_amount
+				payment_date, principal_amount, interest_amount, total_payment, balance_amount, days
 			)
 
 			if (
-				schedule_type_details.repayment_schedule_type == "Monthly as per repayment start date"
+				schedule_type_details.repayment_schedule_type
+				in ["Monthly as per repayment start date", "Monthly as per cycle date"]
 				or schedule_type_details.repayment_date_on == "End of the current month"
 			):
 				next_payment_date = add_single_month(payment_date)
@@ -159,7 +161,10 @@ class Loan(AccountsController):
 			if repayment_date_on == "Start of the next month":
 				expected_payment_date = add_days(expected_payment_date, 1)
 
-			if expected_payment_date == payment_date:
+			if schedule_type == "Monthly as per cycle date":
+				days = date_diff(add_months(payment_date, 1), payment_date)
+				months = 365
+			elif expected_payment_date == payment_date:
 				# using 30 days for calculating interest for all full months
 				days = 30
 				months = 365
@@ -176,14 +181,15 @@ class Loan(AccountsController):
 
 		total_payment = principal_amount + interest_amount
 
-		return interest_amount, principal_amount, balance_amount, total_payment
+		return interest_amount, principal_amount, balance_amount, total_payment, days
 
 	def add_repayment_schedule_row(
-		self, payment_date, principal_amount, interest_amount, total_payment, balance_loan_amount
+		self, payment_date, principal_amount, interest_amount, total_payment, balance_loan_amount, days
 	):
 		self.append(
 			"repayment_schedule",
 			{
+				"number_of_days": days,
 				"payment_date": payment_date,
 				"principal_amount": principal_amount,
 				"interest_amount": interest_amount,
@@ -612,11 +618,11 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 
 
 @frappe.whitelist()
-def update_days_past_due_in_loans(posting_date=None):
+def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=None):
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
-	accruals = get_pending_loan_interest_accruals()
+	accruals = get_pending_loan_interest_accruals(loan_type, loan_name)
 	threshold_map = get_dpd_threshold_map()
 	for loan in accruals:
 		is_npa = 0
@@ -630,14 +636,14 @@ def update_days_past_due_in_loans(posting_date=None):
 			loan.loan, loan.applicant_type, loan.applicant, days_past_due, is_npa
 		)
 
-		create_dpd_record(loan, posting_date, days_past_due)
+		create_dpd_record(loan.loan, posting_date, days_past_due)
 
 
 def create_dpd_record(loan, posting_date, days_past_due):
 	frappe.get_doc(
 		{
 			"doctype": "Days Past Due Log",
-			"loan": loan.loan,
+			"loan": loan,
 			"posting_date": posting_date,
 			"days_past_due": days_past_due,
 		}
@@ -645,16 +651,28 @@ def create_dpd_record(loan, posting_date, days_past_due):
 
 
 def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_due, is_npa):
-	frappe.db.set_value("Loan", loan, "days_past_due", days_past_due)
+	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due)
+
+	frappe.db.set_value(
+		"Loan",
+		loan,
+		{
+			"days_past_due": days_past_due,
+			"asset_classification_code": asset_code,
+			"asset_classification_name": asset_name,
+		},
+	)
 
 	if is_npa:
 		loan = frappe.qb.DocType("Loan")
 		frappe.qb.update("Loan").set(loan.is_npa, is_npa).set(loan.manual_npa, is_npa).where(
-			loan.docstatus
-			== 1 & loan.status.isin(["Disbursed", "Partially Disbursed"]) & loan.applicant_type
-			== applicant_type & loan.applicant
-			== applicant
+			(loan.docstatus == 1)
+			& (loan.status.isin(["Disbursed", "Partially Disbursed"]))
+			& (loan.applicant_type == applicant_type)
+			& (loan.applicant == applicant)
 		).run()
+
+		frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -665,14 +683,41 @@ def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_d
 			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 
 
-def get_pending_loan_interest_accruals():
+def get_asset_classification_code_and_name(days_past_due):
+	if 0 < days_past_due <= 30:
+		asset_code = "SMA-0"
+		asset_name = "Special Mention Account - 0"
+	elif 31 <= days_past_due <= 60:
+		asset_code = "SMA-1"
+		asset_name = "Special Mention Account - 1"
+	elif 61 <= days_past_due <= 90:
+		asset_code = "SMA-2"
+		asset_name = "Special Mention Account - 2"
+	elif 91 <= days_past_due <= 365:
+		asset_code = "D1"
+		asset_name = "Substandard Asset"
+	elif 366 <= days_past_due <= 1098:
+		asset_code = "D2"
+		asset_name = "Doubtful Asset"
+	elif days_past_due >= 1099:
+		asset_code = "D3"
+		asset_name = "Loss Asset"
+
+	return asset_code, asset_name
+
+
+def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 	"""Get pending loan interest accruals"""
 	loan_interest_accrual = frappe.qb.DocType("Loan Interest Accrual")
 
-	return (
+	query = (
 		frappe.qb.from_(loan_interest_accrual)
 		.select(
-			loan_interest_accrual.loan, loan_interest_accrual.loan_type, loan_interest_accrual.due_date
+			loan_interest_accrual.loan,
+			loan_interest_accrual.loan_type,
+			loan_interest_accrual.due_date,
+			loan_interest_accrual.applicant_type,
+			loan_interest_accrual.applicant,
 		)
 		.where(
 			(loan_interest_accrual.docstatus == 1)
@@ -683,9 +728,16 @@ def get_pending_loan_interest_accruals():
 				)
 			)
 		)
-		.orderby(loan_interest_accrual.due_date)
-		.run(as_dict=True)
+		.orderby(loan_interest_accrual.due_date, order=Order.desc)
 	)
+
+	if loan_type:
+		query = query.where(loan_interest_accrual.loan_type == loan_type)
+
+	if loan_name:
+		query = query.where(loan_interest_accrual.loan == loan_name)
+
+	return query.run(as_dict=1)
 
 
 def get_dpd_threshold_map():
