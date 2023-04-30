@@ -16,6 +16,9 @@ from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual
 from erpnext.loan_management.doctype.loan_security_shortfall.loan_security_shortfall import (
 	update_shortfall_status,
 )
+from erpnext.loan_management.doctype.process_asset_classification.process_asset_classification import (
+	create_process_asset_classification,
+)
 from erpnext.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual import (
 	process_loan_interest_accrual_for_demand_loans,
 )
@@ -36,6 +39,9 @@ class LoanRepayment(AccountsController):
 		self.update_paid_amount()
 		self.update_repayment_schedule()
 		self.make_gl_entries()
+		create_process_asset_classification(
+			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
+		)
 
 	def on_cancel(self):
 		self.check_future_accruals()
@@ -43,6 +49,9 @@ class LoanRepayment(AccountsController):
 		self.mark_as_unpaid()
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 		self.make_gl_entries(cancel=1)
+		create_process_asset_classification(
+			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
+		)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -91,8 +100,6 @@ class LoanRepayment(AccountsController):
 			frappe.throw("Repayment already made till date {0}".format(get_datetime(future_repayment_date)))
 
 	def validate_amount(self):
-		precision = cint(frappe.db.get_default("currency_precision")) or 2
-
 		if not self.amount_paid:
 			frappe.throw(_("Amount paid cannot be zero"))
 
@@ -289,16 +296,67 @@ class LoanRepayment(AccountsController):
 			interest_paid -= self.total_penalty_paid
 
 		if self.is_term_loan:
-			interest_paid, updated_entries = self.allocate_interest_amount(interest_paid, repayment_details)
-			self.allocate_principal_amount_for_term_loans(interest_paid, repayment_details, updated_entries)
+			if self.offset_based_on_npa:
+				self.offset_repayment_based_on_npa(interest_paid, repayment_details)
+			else:
+				interest_paid, updated_entries = self.allocate_interest_amount(
+					interest_paid, repayment_details
+				)
+				self.allocate_principal_amount_for_term_loans(
+					interest_paid, repayment_details, updated_entries
+				)
 		else:
-			interest_paid, updated_entries = self.allocate_interest_amount(interest_paid, repayment_details)
+			interest_paid, updated_entries = self.allocate_interest_amount(
+				interest_paid, repayment_details, {}
+			)
 			self.allocate_excess_payment_for_demand_loans(interest_paid, repayment_details)
 
-	def allocate_interest_amount(self, interest_paid, repayment_details):
-		updated_entries = {}
+	def offset_repayment_based_on_npa(self, interest_paid, repayment_details):
+		if interest_paid > 0:
+			if self.is_npa:
+				self.allocate_as_per_npa(interest_paid, repayment_details)
+			else:
+				self.allocate_as_per_non_npa(interest_paid, repayment_details)
+
+	def allocate_as_per_non_npa(self, interest_paid, repayment_details):
+		for lia, amounts in repayment_details.get("pending_accrual_entries", []).items():
+			interest_amount = 0
+			principal_amount = 0
+			if amounts["interest_amount"] <= interest_paid:
+				interest_amount = amounts["interest_amount"]
+				interest_paid -= interest_amount
+				self.total_interest_paid += amounts["interest_amount"]
+				if amounts["payable_principal_amount"] <= interest_paid:
+					principal_amount = amounts["payable_principal_amount"]
+					interest_paid -= principal_amount
+				elif interest_paid:
+					principal_amount = interest_paid
+					interest_paid = 0
+			elif interest_paid:
+				interest_amount = interest_paid
+				interest_paid = 0
+
+			if interest_amount or principal_amount:
+				self.append(
+					"repayment_details",
+					{
+						"loan_interest_accrual": lia,
+						"paid_principal_amount": principal_amount,
+						"paid_interest_amount": interest_amount,
+					},
+				)
+
+	def allocate_as_per_npa(self, interest_paid, repayment_details):
+		interest_paid, updated_entries = self.allocate_principal_amount_for_term_loans(
+			interest_paid, repayment_details, {}
+		)
+		self.allocate_interest_amount(interest_paid, repayment_details, updated_entries)
+
+	def allocate_interest_amount(self, interest_paid, repayment_details, updated_entries=None):
 		self.total_interest_paid = 0
 		idx = 1
+		if not updated_entries:
+			updated_entries = {}
 
 		if interest_paid > 0:
 			for lia, amounts in repayment_details.get("pending_accrual_entries", []).items():
@@ -317,6 +375,9 @@ class LoanRepayment(AccountsController):
 						self.total_interest_paid += interest_amount
 						interest_paid = 0
 
+				if updated_entries.get(lia):
+					idx = updated_entries.get(lia)
+					self.get("repayment_details")[idx - 1].paid_interest_amount += interest_amount
 				if interest_amount:
 					self.append(
 						"repayment_details",
@@ -364,8 +425,7 @@ class LoanRepayment(AccountsController):
 						},
 					)
 
-		if interest_paid > 0:
-			self.principal_amount_paid += interest_paid
+		return interest_paid, updated_entries
 
 	def allocate_excess_payment_for_demand_loans(self, interest_paid, repayment_details):
 		if repayment_details["unaccrued_interest"] and interest_paid > 0:
@@ -530,7 +590,7 @@ def get_accrued_interest_entries(against_loan, posting_date=None):
 				`tabLoan Interest Accrual`
 			WHERE
 				loan = %s
-			AND posting_date <= %s
+			AND due_date <= %s
 			AND (interest_amount - paid_interest_amount > 0 OR
 				payable_principal_amount - paid_principal_amount > 0)
 			AND
