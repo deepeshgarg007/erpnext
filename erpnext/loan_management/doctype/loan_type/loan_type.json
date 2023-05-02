@@ -24,6 +24,7 @@
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
+  "loan_waiver_account",
   "column_break_12",
   "use_separate_accounts_for_npa_loans",
   "loan_account",
@@ -191,12 +192,18 @@
    "fieldname": "use_separate_accounts_for_npa_loans",
    "fieldtype": "Check",
    "label": "Use Separate Accounts For NPA Loans"
+  },
+  {
+   "fieldname": "loan_waiver_account",
+   "fieldtype": "Link",
+   "label": "Loan Waiver Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-27 19:01:17.514694",
+ "modified": "2023-05-01 21:14:53.736580",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

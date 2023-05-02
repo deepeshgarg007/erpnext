@@ -12,6 +12,7 @@
   "applicant",
   "applicant_name",
   "loan_application",
+  "branch",
   "column_break_3",
   "company",
   "posting_date",
@@ -443,12 +444,18 @@
    "fieldtype": "Select",
    "label": "Asset Classification Name",
    "options": "\nSpecial Mention Account - 1\nSpecial Mention Account - 2\nSpecial Mention Account - 3\nSubstandard Asset\nDoubtful Asset\nLoss Asset"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-29 18:21:31.309606",
+ "modified": "2023-04-30 17:50:38.591371",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

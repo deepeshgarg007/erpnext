@@ -264,10 +264,10 @@ frappe.ui.form.on('Loan', {
 
 							frm.refresh_fields("securities");
 						}
-                    }
-                }
-            });
-        }
+					}
+				}
+			});
+		}
 	},
 
 	repayment_method: function (frm) {
