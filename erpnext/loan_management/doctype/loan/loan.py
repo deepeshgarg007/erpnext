@@ -684,6 +684,9 @@ def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_d
 
 
 def get_asset_classification_code_and_name(days_past_due):
+	asset_code = ""
+	asset_name = ""
+
 	if 0 < days_past_due <= 30:
 		asset_code = "SMA-0"
 		asset_name = "Special Mention Account - 0"
