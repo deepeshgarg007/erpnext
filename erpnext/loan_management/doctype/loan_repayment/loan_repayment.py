@@ -287,7 +287,7 @@ class LoanRepayment(AccountsController):
 
 		interest_paid -= self.principal_amount_paid
 
-		if interest_paid > 0:
+		if interest_paid > 0 and not self.offset_repayment_based_on_npa:
 			if self.penalty_amount and interest_paid > self.penalty_amount:
 				self.total_penalty_paid = flt(self.penalty_amount, precision)
 			elif self.penalty_amount:
@@ -346,11 +346,14 @@ class LoanRepayment(AccountsController):
 					},
 				)
 
+		self.allocate_charges(interest_paid)
+
 	def allocate_as_per_npa(self, interest_paid, repayment_details):
 		interest_paid, updated_entries = self.allocate_principal_amount_for_term_loans(
 			interest_paid, repayment_details, {}
 		)
 		self.allocate_interest_amount(interest_paid, repayment_details, updated_entries)
+		self.allocate_charges(interest_paid)
 
 	def allocate_interest_amount(self, interest_paid, repayment_details, updated_entries=None):
 		self.total_interest_paid = 0
@@ -426,6 +429,14 @@ class LoanRepayment(AccountsController):
 					)
 
 		return interest_paid, updated_entries
+
+	def allocate_charges(self, interest_paid):
+		precision = cint(frappe.db.get_default("currency_precision")) or 2
+		if interest_paid > 0 and not self.offset_repayment_based_on_npa:
+			if self.penalty_amount and interest_paid > self.penalty_amount:
+				self.total_penalty_paid = flt(self.penalty_amount, precision)
+			elif self.penalty_amount:
+				self.total_penalty_paid = flt(interest_paid, precision)
 
 	def allocate_excess_payment_for_demand_loans(self, interest_paid, repayment_details):
 		if repayment_details["unaccrued_interest"] and interest_paid > 0:
@@ -763,7 +774,7 @@ def get_amounts(amounts, against_loan, posting_date):
 		):
 			penalty_amount += (
 				entry.interest_amount * (loan_type_details.penalty_interest_rate / 100) * no_of_late_days
-			)
+			) / 365
 
 		total_pending_interest += entry.interest_amount
 		payable_principal_amount += entry.payable_principal_amount

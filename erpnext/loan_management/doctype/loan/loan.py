@@ -145,6 +145,18 @@ class Loan(AccountsController):
 			)
 
 			if (
+				self.repayment_method == "Repay Over Number of Periods"
+				and len(self.get("repayment_schedule")) >= self.repayment_periods
+			):
+				self.get("repayment_schedule")[-1].principal_amount += balance_amount
+				self.get("repayment_schedule")[-1].balance_loan_amount = 0
+				self.get("repayment_schedule")[-1].total_payment = (
+					self.get("repayment_schedule")[-1].interest_amount
+					+ self.get("repayment_schedule")[-1].principal_amount
+				)
+				balance_amount = 0
+
+			if (
 				schedule_type_details.repayment_schedule_type
 				in ["Monthly as per repayment start date", "Monthly as per cycle date"]
 				or schedule_type_details.repayment_date_on == "End of the current month"
