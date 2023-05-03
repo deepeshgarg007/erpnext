@@ -48,8 +48,10 @@
   {
    "fieldname": "loan",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Loan",
-   "options": "Loan"
+   "options": "Loan",
+   "reqd": 1
   },
   {
    "fetch_from": "loan.applicant_type",
@@ -208,7 +210,9 @@
   {
    "fieldname": "restructure_date",
    "fieldtype": "Date",
-   "label": "Restructure Date"
+   "in_list_view": 1,
+   "label": "Restructure Date",
+   "reqd": 1
   },
   {
    "default": "0",
@@ -265,7 +269,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-01 18:33:09.750171",
+ "modified": "2023-05-03 17:08:51.930145",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

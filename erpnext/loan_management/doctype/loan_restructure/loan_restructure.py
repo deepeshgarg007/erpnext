@@ -47,21 +47,21 @@ class LoanRestructure(AccountsController):
 		self.charges_overdue = amounts.get("penalty_amount")
 
 	def validate_waiver_amount(self):
-		if self.principal_waiver_amount > self.principal_overdue:
+		if flt(self.principal_waiver_amount) > flt(self.principal_overdue):
 			frappe.throw(_("Principal Waiver Amount cannot be greater than overdue principal"))
 
-		if self.interest_waiver_amount > self.interest_overdue:
+		if flt(self.interest_waiver_amount) > flt(self.interest_overdue):
 			frappe.throw(_("Interest Waiver Amount cannot be greater than overdue interest"))
 
-		if self.other_charges_waiver > self.charges_overdue:
+		if flt(self.other_charges_waiver) > flt(self.charges_overdue):
 			frappe.throw(_("Other Charges Waiver cannot be greater than overdue charges"))
 
 	def calculate_new_loan_amount(self):
 		self.new_loan_amount = (
-			self.pending_principal_amount
-			- self.principal_waiver_amount
-			- self.interest_waiver_amount
-			- self.other_charges_waiver
+			flt(self.pending_principal_amount)
+			- flt(self.principal_waiver_amount)
+			- flt(self.interest_waiver_amount)
+			- flt(self.other_charges_waiver)
 		)
 
 		if not self.carry_forward_pending_interest:
@@ -93,7 +93,7 @@ class LoanRestructure(AccountsController):
 
 	def make_repayment_schedule(self):
 		if not self.repayment_start_date:
-			frappe.throw(_("Repayment Start Date is mandatory for term loans"))
+			self.repayment_start_date = self.restructure_date
 
 		schedule_type_details = frappe.db.get_value(
 			"Loan Type", self.loan_type, ["repayment_schedule_type", "repayment_date_on"], as_dict=1
