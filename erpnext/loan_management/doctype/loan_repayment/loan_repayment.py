@@ -735,7 +735,7 @@ def get_pending_principal_amount(loan):
 # So it pulls all the unpaid Loan Interest Accrual Entries and calculates the penalty if applicable
 
 
-def get_amounts(amounts, against_loan, posting_date):
+def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 	precision = cint(frappe.db.get_default("currency_precision")) or 2
 
 	against_loan_doc = frappe.get_doc("Loan", against_loan)
@@ -820,11 +820,14 @@ def get_amounts(amounts, against_loan, posting_date):
 	if final_due_date:
 		amounts["due_date"] = final_due_date
 
-	return amounts
+	if with_loan_details:
+		return amounts, against_loan_doc.as_dict()
+	else:
+		return amounts
 
 
 @frappe.whitelist()
-def calculate_amounts(against_loan, posting_date, payment_type=""):
+def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_details=False):
 	amounts = {
 		"penalty_amount": 0.0,
 		"interest_amount": 0.0,
@@ -835,7 +838,12 @@ def calculate_amounts(against_loan, posting_date, payment_type=""):
 		"due_date": "",
 	}
 
-	amounts = get_amounts(amounts, against_loan, posting_date)
+	if with_loan_details:
+		amounts, loan_details = get_amounts(
+			amounts, against_loan, posting_date, payment_type, with_loan_details
+		)
+	else:
+		amounts = get_amounts(amounts, against_loan, posting_date)
 
 	# update values for closure
 	if payment_type == "Loan Closure":
@@ -845,4 +853,7 @@ def calculate_amounts(against_loan, posting_date, payment_type=""):
 			amounts["payable_principal_amount"] + amounts["interest_amount"] + amounts["penalty_amount"]
 		)
 
-	return amounts
+	if with_loan_details:
+		return {"amounts": amounts, "loan_details": loan_details}
+	else:
+		return amounts
