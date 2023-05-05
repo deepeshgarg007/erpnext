@@ -24,12 +24,17 @@
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
-  "loan_waiver_account",
   "column_break_12",
   "use_separate_accounts_for_npa_loans",
   "loan_account",
   "interest_income_account",
   "penalty_income_account",
+  "loan_waiver_accounts_section",
+  "principal_waiver_account",
+  "interest_waiver_account",
+  "column_break_amrb",
+  "penalty_waiver_account",
+  "charges_waiver_account",
   "amended_from"
  ],
  "fields": [
@@ -73,7 +78,7 @@
   {
    "fieldname": "account_details_section",
    "fieldtype": "Section Break",
-   "label": "Account Details"
+   "label": "Loan Account Details"
   },
   {
    "fieldname": "mode_of_payment",
@@ -194,16 +199,43 @@
    "label": "Use Separate Accounts For NPA Loans"
   },
   {
-   "fieldname": "loan_waiver_account",
+   "fieldname": "loan_waiver_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Waiver Accounts"
+  },
+  {
+   "fieldname": "principal_waiver_account",
    "fieldtype": "Link",
-   "label": "Loan Waiver Account",
+   "label": "Principal Waiver Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "interest_waiver_account",
+   "fieldtype": "Link",
+   "label": "Interest Waiver Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_amrb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "penalty_waiver_account",
+   "fieldtype": "Link",
+   "label": "Penalty Waiver Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "charges_waiver_account",
+   "fieldtype": "Link",
+   "label": "Charges Waiver Account",
    "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-01 21:14:53.736580",
+ "modified": "2023-05-03 19:50:49.191225",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

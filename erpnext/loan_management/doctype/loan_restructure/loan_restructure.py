@@ -5,7 +5,6 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, add_months, date_diff, flt, get_last_day, getdate
 
-from erpnext.accounts.general_ledger import make_gl_entries
 from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.loan_management.doctype.loan.loan import (
 	add_single_month,
@@ -19,13 +18,14 @@ class LoanRestructure(AccountsController):
 		self.update_overdue_amounts()
 		self.validate_waiver_amount()
 		self.calculate_new_loan_amount()
-		# self.validate_new_loan_amount()
+		self.validate_new_loan_amount()
 		self.update_restructured_loan_details()
 		self.make_repayment_schedule()
 
 	def on_submit(self):
 		# self.restructure_loan()
-		self.make_waiver_gl_entries()
+		self.make_loan_adjustment_for_waiver()
+		self.mark_loan_as_npa()
 
 	def update_overdue_amounts(self):
 		amounts = {
@@ -182,44 +182,77 @@ class LoanRestructure(AccountsController):
 			},
 		)
 
-	def make_waiver_gl_entries(self, cancel=0):
-		gle_map = []
-		amount = self.principal_waiver_amount + self.interest_waiver_amount + self.other_charges_waiver
+	def mark_loan_as_npa(self):
+		frappe.db.set_value("Loan", self.loan, "is_npa", 1)
 
-		if amount:
-			waiver_account = frappe.db.get_value("Loan Type", self.loan_type, "loan_waiver_account")
-			loan_account = frappe.db.get_value("Loan Type", self.loan_type, "loan_account")
-			gle_map.append(
-				self.get_gl_dict(
-					{
-						"account": waiver_account,
-						"against": loan_account,
-						"debit": amount,
-						"debit_in_account_currency": amount,
-						"against_voucher_type": "Loan",
-						"against_voucher": self.loan,
-						"remarks": _("Loan Waiver Entry"),
-						"posting_date": getdate(self.restructure_date),
-					}
-				)
-			)
+	def make_loan_adjustment_for_waiver(self):
+		principal_waiver_account = frappe.db.get_value(
+			"Loan Type", self.loan_type, "principal_waiver_account"
+		)
+		make_loan_balance_entry(
+			self.loan,
+			self.principal_waiver_amount,
+			principal_waiver_account,
+			"Credit Adjustment",
+			posting_date=self.restructure_date,
+			reference_name=self.name,
+			reference_doctype="Loan Restructure",
+		)
 
-			gle_map.append(
-				self.get_gl_dict(
-					{
-						"account": loan_account,
-						"party_type": self.applicant_type,
-						"party": self.applicant,
-						"against": waiver_account,
-						"credit": amount,
-						"credit_in_account_currency": amount,
-						"against_voucher_type": "Loan",
-						"against_voucher": self.loan,
-						"remarks": _("Loan Waiver Entry"),
-						"posting_date": getdate(self.restructure_date),
-					}
-				)
-			)
+		interest_waiver_account = frappe.db.get_value(
+			"Loan Type", self.loan_type, "interest_waiver_account"
+		)
+		make_loan_balance_entry(
+			self.loan,
+			self.interest_waiver_amount,
+			interest_waiver_account,
+			"Credit Adjustment",
+			posting_date=self.restructure_date,
+			reference_name=self.name,
+			reference_doctype="Loan Restructure",
+		)
 
-			if gle_map:
-				make_gl_entries(gle_map, cancel=cancel, merge_entries=False)
+		penalty_waiver_account = frappe.db.get_value(
+			"Loan Type", self.loan_type, "principal_waiver_account"
+		)
+		make_loan_balance_entry(
+			self.loan,
+			self.other_charges_waiver,
+			penalty_waiver_account,
+			"Credit Adjustment",
+			posting_date=self.restructure_date,
+			reference_name=self.name,
+			reference_doctype="Loan Restructure",
+		)
+
+	def cancel_loan_waiver(self):
+		for d in frappe.get_all(
+			"Loan Balance Adjustment",
+			{"reference_doctype": "Loan Restructure", "reference_name": self.name},
+		):
+			doc = frappe.get_doc("Loan Balance Adjustment", d.name)
+			doc.cancel()
+
+
+def make_loan_balance_entry(
+	loan,
+	amount,
+	account,
+	adjustment_type,
+	posting_date=None,
+	reference_doctype=None,
+	reference_name=None,
+):
+	if not amount:
+		return
+
+	la = frappe.new_doc("Loan Balance Adjustment")
+	la.loan = loan
+	la.posting_date = posting_date or getdate()
+	la.amount = amount
+	la.adjustment_type = adjustment_type
+	la.adjustment_account = account
+	la.reference_document_type = reference_doctype
+	la.reference_name = reference_name
+	la.insert()
+	la.submit()
