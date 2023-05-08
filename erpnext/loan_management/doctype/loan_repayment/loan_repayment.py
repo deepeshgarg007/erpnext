@@ -839,9 +839,7 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 	}
 
 	if with_loan_details:
-		amounts, loan_details = get_amounts(
-			amounts, against_loan, posting_date, payment_type, with_loan_details
-		)
+		amounts, loan_details = get_amounts(amounts, against_loan, posting_date, with_loan_details)
 	else:
 		amounts = get_amounts(amounts, against_loan, posting_date)
 
