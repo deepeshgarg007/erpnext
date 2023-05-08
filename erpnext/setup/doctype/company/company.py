@@ -63,6 +63,7 @@ class Company(NestedSet):
 		self.check_parent_changed()
 		self.set_chart_of_accounts()
 		self.validate_parent_company()
+		self.validate_loan_classification()
 
 	def validate_abbr(self):
 		if not self.abbr:
@@ -449,6 +450,26 @@ class Company(NestedSet):
 
 		if account:
 			self.db_set(fieldname, account)
+
+	def validate_loan_classification(self):
+		def overlap_exists_between(num_range1, num_range2):
+			(x1, x2), (y1, y2) = num_range1, num_range2
+			separate = (x1 <= x2 <= y1 <= y2) or (y1 <= y2 <= x1 <= x2)
+			return not separate
+
+		overlaps = []
+		for i in range(0, len(self.asset_classification_ranges)):
+			for j in range(i + 1, len(self.asset_classification_ranges)):
+				d1, d2 = self.asset_classification_ranges[i], self.asset_classification_ranges[j]
+				if d1.as_dict() != d2.as_dict():
+					# in our case, to_value can be zero, hence pass the from_value if so
+					range_a = (d1.min_range, d1.max_range or d1.min_range)
+					range_b = (d2.min_range, d2.max_range or d2.min_range)
+					if overlap_exists_between(range_a, range_b):
+						overlaps.append([d1, d2])
+
+		if overlaps:
+			frappe.throw(_("Overlap exists between ranges"))
 
 	def set_mode_of_payment_account(self):
 		cash = frappe.db.get_value("Mode of Payment", {"type": "Cash"}, "name")

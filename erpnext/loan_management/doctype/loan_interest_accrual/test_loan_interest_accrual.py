@@ -81,6 +81,8 @@ class TestLoanInterestAccrual(unittest.TestCase):
 
 		self.applicant = frappe.db.get_value("Customer", {"name": "_Test Loan Customer"}, "name")
 
+		setup_asset_classification_ranges("_Test Company")
+
 	def test_loan_interest_accural(self):
 		pledge = [{"loan_security": "Test Security 1", "qty": 4000.00}]
 
@@ -218,3 +220,29 @@ class TestLoanInterestAccrual(unittest.TestCase):
 		self.assertEqual(
 			flt(loan_interest_accrual.total_pending_interest_amount, 0), total_pending_interest_amount
 		)
+
+
+def setup_asset_classification_ranges(company):
+	ranges = [
+		["SMA-0", "Special Mention Account - 0", 0, 30],
+		["SMA-1", "Special Mention Account - 1", 31, 60],
+		["SMA-2", "Special Mention Account - 2", 61, 90],
+		["D1", "Substandard Asset", 91, 365],
+		["D2", "Doubtful Asset", 366, 1098],
+		["D3", "Loss Asset", 1099, 10000000],
+	]
+	company_doc = frappe.get_doc("Company", company)
+	company_doc.set("asset_classification_ranges", [])
+
+	for range in ranges:
+		company_doc.append(
+			"asset_classification_ranges",
+			{
+				"asset_classification_code": range[0],
+				"asset_classification_name": range[1],
+				"min_range": range[2],
+				"max_range": range[3],
+			},
+		)
+
+	company_doc.save()

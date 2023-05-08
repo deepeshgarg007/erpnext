@@ -10,6 +10,9 @@
   "loan",
   "applicant_type",
   "applicant",
+  "repayment_method",
+  "restructure_type",
+  "branch",
   "column_break_xph8",
   "company",
   "restructure_date",
@@ -24,14 +27,19 @@
   "total_overdue_amount",
   "principal_overdue",
   "interest_overdue",
+  "penalty_overdue",
   "charges_overdue",
   "loan_waiver_details_section",
   "principal_waiver_amount",
   "interest_waiver_amount",
+  "capitalize_normal_interest",
+  "capitalize_penal_interest",
+  "capitalize_other_charges",
   "column_break_a6aq",
+  "penal_interest_waiver",
   "other_charges_waiver",
-  "carry_forward_pending_interest",
   "carry_forward_pending_charges",
+  "carry_forward_penalty_interest",
   "loan_restructure_details_section",
   "new_rate_of_interest",
   "repayment_start_date",
@@ -168,7 +176,8 @@
   {
    "fieldname": "interest_waiver_amount",
    "fieldtype": "Currency",
-   "label": "Interest Waiver Amount"
+   "label": "Interest Waiver Amount",
+   "options": "Company:company:default_currency"
   },
   {
    "fieldname": "column_break_a6aq",
@@ -177,7 +186,8 @@
   {
    "fieldname": "other_charges_waiver",
    "fieldtype": "Currency",
-   "label": "Penalty And Other Charges Waiver"
+   "label": "Other Charges Waiver",
+   "options": "Company:company:default_currency"
   },
   {
    "fieldname": "total_overdue_amount",
@@ -213,12 +223,6 @@
    "in_list_view": 1,
    "label": "Restructure Date",
    "reqd": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "carry_forward_pending_interest",
-   "fieldtype": "Check",
-   "label": "Carry Forward Pending Interest"
   },
   {
    "default": "0",
@@ -264,12 +268,67 @@
    "hidden": 1,
    "label": "Loan Type",
    "options": "Loan Type"
+  },
+  {
+   "fieldname": "penal_interest_waiver",
+   "fieldtype": "Currency",
+   "label": "Penal Interest Waiver",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "restructure_type",
+   "fieldtype": "Select",
+   "label": "Restructure Type",
+   "options": "Normal Restructure\nPre Payment"
+  },
+  {
+   "default": "0",
+   "fieldname": "carry_forward_penalty_interest",
+   "fieldtype": "Check",
+   "label": "Carry Forward Penalty Interest"
+  },
+  {
+   "default": "0",
+   "fieldname": "capitalize_penal_interest",
+   "fieldtype": "Check",
+   "label": "Capitalize Penal Interest"
+  },
+  {
+   "default": "0",
+   "fieldname": "capitalize_other_charges",
+   "fieldtype": "Check",
+   "label": "Capitalize Other Charges"
+  },
+  {
+   "fetch_from": "loan.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "default": "0",
+   "fieldname": "capitalize_normal_interest",
+   "fieldtype": "Check",
+   "label": "Capitalize Normal Interest"
+  },
+  {
+   "fieldname": "penalty_overdue",
+   "fieldtype": "Currency",
+   "label": "Penalty Overdue",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fetch_from": "loan.repayment_method",
+   "fieldname": "repayment_method",
+   "fieldtype": "Data",
+   "label": "Repayment Method"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-03 17:08:51.930145",
+ "modified": "2023-05-07 18:38:14.826289",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

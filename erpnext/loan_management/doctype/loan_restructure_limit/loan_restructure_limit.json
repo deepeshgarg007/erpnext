@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2023-05-07 11:38:28.488678",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "branch",
+  "limit_percent",
+  "column_break_tcuo",
+  "from_date",
+  "to_date",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "description": "This percent limit applies to total outstanding principal amount against a branch for restructure ",
+   "fieldname": "limit_percent",
+   "fieldtype": "Percent",
+   "label": "Limit Percent"
+  },
+  {
+   "fieldname": "column_break_tcuo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Loan Restructure Limit",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-05-07 11:38:28.488678",
+ "modified_by": "Administrator",
+ "module": "Loan Management",
+ "name": "Loan Restructure Limit",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

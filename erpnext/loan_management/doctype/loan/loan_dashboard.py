@@ -6,7 +6,14 @@ def get_data():
 			"Loan Repayment": "against_loan",
 		},
 		"transactions": [
-			{"items": ["Loan Security Pledge", "Loan Security Shortfall", "Loan Disbursement"]},
+			{
+				"items": [
+					"Loan Repayment Schedule",
+					"Loan Security Pledge",
+					"Loan Security Shortfall",
+					"Loan Disbursement",
+				]
+			},
 			{
 				"items": [
 					"Loan Repayment",

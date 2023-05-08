@@ -3,21 +3,11 @@
 
 
 import json
-import math
 
 import frappe
 from frappe import _
 from frappe.query_builder import Order
-from frappe.utils import (
-	add_days,
-	add_months,
-	date_diff,
-	flt,
-	get_last_day,
-	getdate,
-	now_datetime,
-	nowdate,
-)
+from frappe.utils import date_diff, flt, getdate, now_datetime, nowdate
 
 import erpnext
 from erpnext.accounts.doctype.journal_entry.journal_entry import get_payment_entry
@@ -36,18 +26,8 @@ class Loan(AccountsController):
 		self.validate_cost_center()
 		self.validate_accounts()
 		self.check_sanctioned_amount_limit()
-
 		if self.is_term_loan:
-			validate_repayment_method(
-				self.repayment_method,
-				self.loan_amount,
-				self.monthly_repayment_amount,
-				self.repayment_periods,
-				self.is_term_loan,
-			)
-			self.make_repayment_schedule()
-			self.set_repayment_period()
-
+			self.make_update_draft_schedule()
 		self.calculate_totals()
 
 	def validate_accounts(self):
@@ -77,9 +57,11 @@ class Loan(AccountsController):
 		self.link_loan_security_pledge()
 		# Interest accrual for backdated term loans
 		self.accrue_loan_interest()
+		self.submit_draft_schedule()
 
 	def on_cancel(self):
 		self.unlink_loan_security_pledge()
+		self.cancel_and_delete_repayment_schedule()
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 
 	def set_missing_fields(self):
@@ -91,11 +73,6 @@ class Loan(AccountsController):
 
 		if self.loan_type and not self.rate_of_interest:
 			self.rate_of_interest = frappe.db.get_value("Loan Type", self.loan_type, "rate_of_interest")
-
-		if self.repayment_method == "Repay Over Number of Periods":
-			self.monthly_repayment_amount = get_monthly_repayment_amount(
-				self.loan_amount, self.rate_of_interest, self.repayment_periods
-			)
 
 	def check_sanctioned_amount_limit(self):
 		sanctioned_amount_limit = get_sanctioned_amount_limit(
@@ -113,108 +90,50 @@ class Loan(AccountsController):
 				)
 			)
 
-	def make_repayment_schedule(self):
-		if not self.repayment_start_date:
-			frappe.throw(_("Repayment Start Date is mandatory for term loans"))
-
-		schedule_type_details = frappe.db.get_value(
-			"Loan Type", self.loan_type, ["repayment_schedule_type", "repayment_date_on"], as_dict=1
+	def make_update_draft_schedule(self):
+		draft_schedule = frappe.db.get_value(
+			"Loan Repayment Schedule", {"loan": self.name, "docstatus": 0}, "name"
 		)
-
-		self.repayment_schedule = []
-		payment_date = self.repayment_start_date
-		balance_amount = self.loan_amount
-
-		while balance_amount > 0:
-			interest_amount, principal_amount, balance_amount, total_payment, days = self.get_amounts(
-				payment_date,
-				balance_amount,
-				schedule_type_details.repayment_schedule_type,
-				schedule_type_details.repayment_date_on,
+		if draft_schedule:
+			schedule = frappe.get_doc("Loan Repayment Schedule", draft_schedule)
+			schedule.update(
+				{
+					"loan": self.name,
+					"repayment_periods": self.repayment_periods,
+					"repayment_method": self.repayment_method,
+					"repayment_start_date": self.repayment_start_date,
+				}
 			)
-
-			if schedule_type_details.repayment_schedule_type == "Pro-rated calendar months":
-				next_payment_date = get_last_day(payment_date)
-				if schedule_type_details.repayment_date_on == "Start of the next month":
-					next_payment_date = add_days(next_payment_date, 1)
-
-				payment_date = next_payment_date
-
-			self.add_repayment_schedule_row(
-				payment_date, principal_amount, interest_amount, total_payment, balance_amount, days
-			)
-
-			if (
-				self.repayment_method == "Repay Over Number of Periods"
-				and len(self.get("repayment_schedule")) >= self.repayment_periods
-			):
-				self.get("repayment_schedule")[-1].principal_amount += balance_amount
-				self.get("repayment_schedule")[-1].balance_loan_amount = 0
-				self.get("repayment_schedule")[-1].total_payment = (
-					self.get("repayment_schedule")[-1].interest_amount
-					+ self.get("repayment_schedule")[-1].principal_amount
-				)
-				balance_amount = 0
-
-			if (
-				schedule_type_details.repayment_schedule_type
-				in ["Monthly as per repayment start date", "Monthly as per cycle date"]
-				or schedule_type_details.repayment_date_on == "End of the current month"
-			):
-				next_payment_date = add_single_month(payment_date)
-				payment_date = next_payment_date
-
-	def get_amounts(self, payment_date, balance_amount, schedule_type, repayment_date_on):
-		if schedule_type == "Monthly as per repayment start date":
-			days = 1
-			months = 12
+			schedule.save()
 		else:
-			expected_payment_date = get_last_day(payment_date)
-			if repayment_date_on == "Start of the next month":
-				expected_payment_date = add_days(expected_payment_date, 1)
+			frappe.get_doc(
+				{
+					"doctype": "Loan Repayment Schedule",
+					"loan": self.name,
+					"repayment_method": self.repayment_method,
+					"repayment_start_date": self.repayment_start_date,
+					"repayment_periods": self.repayment_periods,
+					"loan_amount": self.loan_amount,
+					"loan_type": self.loan_type,
+					"rate_of_interest": self.rate_of_interest,
+				}
+			).insert()
 
-			if schedule_type == "Monthly as per cycle date":
-				days = date_diff(add_months(payment_date, 1), payment_date)
-				months = 365
-			elif expected_payment_date == payment_date:
-				# using 30 days for calculating interest for all full months
-				days = 30
-				months = 365
-			else:
-				days = date_diff(get_last_day(payment_date), payment_date)
-				months = 365
-
-		interest_amount = flt(balance_amount * flt(self.rate_of_interest) * days / (months * 100))
-		principal_amount = self.monthly_repayment_amount - interest_amount
-		balance_amount = flt(balance_amount + interest_amount - self.monthly_repayment_amount)
-		if balance_amount < 0:
-			principal_amount += balance_amount
-			balance_amount = 0.0
-
-		total_payment = principal_amount + interest_amount
-
-		return interest_amount, principal_amount, balance_amount, total_payment, days
-
-	def add_repayment_schedule_row(
-		self, payment_date, principal_amount, interest_amount, total_payment, balance_loan_amount, days
-	):
-		self.append(
-			"repayment_schedule",
-			{
-				"number_of_days": days,
-				"payment_date": payment_date,
-				"principal_amount": principal_amount,
-				"interest_amount": interest_amount,
-				"total_payment": total_payment,
-				"balance_loan_amount": balance_loan_amount,
-			},
+	def submit_draft_schedule(self):
+		draft_schedule = frappe.db.get_value(
+			"Loan Repayment Schedule", {"loan": self.name, "docstatus": 0}, "name"
 		)
+		if draft_schedule:
+			schedule = frappe.get_doc("Loan Repayment Schedule", draft_schedule)
+			schedule.submit()
 
-	def set_repayment_period(self):
-		if self.repayment_method == "Repay Fixed Amount per Period":
-			repayment_periods = len(self.repayment_schedule)
-
-			self.repayment_periods = repayment_periods
+	def cancel_and_delete_repayment_schedule(self):
+		schedule = frappe.db.get_value(
+			"Loan Repayment Schedule", {"loan": self.name, "docstatus": 1}, "name"
+		)
+		if schedule:
+			schedule = frappe.get_doc("Loan Repayment Schedule", schedule)
+			schedule.cancel()
 
 	def calculate_totals(self):
 		self.total_payment = 0
@@ -222,7 +141,8 @@ class Loan(AccountsController):
 		self.total_amount_paid = 0
 
 		if self.is_term_loan:
-			for data in self.repayment_schedule:
+			schedule = frappe.get_doc("Loan Repayment Schedule", {"loan": self.name, "docstatus": 0})
+			for data in schedule.repayment_schedule:
 				self.total_payment += data.total_payment
 				self.total_interest_payable += data.interest_amount
 		else:
@@ -349,35 +269,6 @@ def get_sanctioned_amount_limit(applicant_type, applicant, company):
 		{"applicant_type": applicant_type, "company": company, "applicant": applicant},
 		"sanctioned_amount_limit",
 	)
-
-
-def validate_repayment_method(
-	repayment_method, loan_amount, monthly_repayment_amount, repayment_periods, is_term_loan
-):
-
-	if is_term_loan and not repayment_method:
-		frappe.throw(_("Repayment Method is mandatory for term loans"))
-
-	if repayment_method == "Repay Over Number of Periods" and not repayment_periods:
-		frappe.throw(_("Please enter Repayment Periods"))
-
-	if repayment_method == "Repay Fixed Amount per Period":
-		if not monthly_repayment_amount:
-			frappe.throw(_("Please enter repayment Amount"))
-		if monthly_repayment_amount > loan_amount:
-			frappe.throw(_("Monthly Repayment Amount cannot be greater than Loan Amount"))
-
-
-def get_monthly_repayment_amount(loan_amount, rate_of_interest, repayment_periods):
-	if rate_of_interest:
-		monthly_interest_rate = flt(rate_of_interest) / (12 * 100)
-		monthly_repayment_amount = math.ceil(
-			(loan_amount * monthly_interest_rate * (1 + monthly_interest_rate) ** repayment_periods)
-			/ ((1 + monthly_interest_rate) ** repayment_periods - 1)
-		)
-	else:
-		monthly_repayment_amount = math.ceil(flt(loan_amount) / repayment_periods)
-	return monthly_repayment_amount
 
 
 @frappe.whitelist()
@@ -570,13 +461,6 @@ def get_shortfall_applicants():
 	return {"value": len(applicants), "fieldtype": "Int"}
 
 
-def add_single_month(date):
-	if getdate(date) == get_last_day(date):
-		return get_last_day(add_months(date, 1))
-	else:
-		return add_months(date, 1)
-
-
 @frappe.whitelist()
 def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, submit=0):
 	loan_details = frappe.db.get_value(
@@ -645,7 +529,7 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 			is_npa = 1
 
 		update_loan_and_customer_status(
-			loan.loan, loan.applicant_type, loan.applicant, days_past_due, is_npa
+			loan.loan, loan.company, loan.applicant_type, loan.applicant, days_past_due, is_npa
 		)
 
 		create_dpd_record(loan.loan, posting_date, days_past_due)
@@ -662,8 +546,10 @@ def create_dpd_record(loan, posting_date, days_past_due):
 	).insert(ignore_permissions=True)
 
 
-def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_due, is_npa):
-	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due)
+def update_loan_and_customer_status(
+	loan, company, applicant_type, applicant, days_past_due, is_npa
+):
+	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due, company)
 
 	frappe.db.set_value(
 		"Loan",
@@ -695,28 +581,19 @@ def update_loan_and_customer_status(loan, applicant_type, applicant, days_past_d
 			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 
 
-def get_asset_classification_code_and_name(days_past_due):
+def get_asset_classification_code_and_name(days_past_due, company):
 	asset_code = ""
 	asset_name = ""
+	ranges = frappe.get_all(
+		"Loan Asset Classification Range",
+		fields=["min_range", "max_range", "asset_classification_code", "asset_classification_name"],
+		filters={"parent": company},
+		order_by="min_range",
+	)
 
-	if 0 < days_past_due <= 30:
-		asset_code = "SMA-0"
-		asset_name = "Special Mention Account - 0"
-	elif 31 <= days_past_due <= 60:
-		asset_code = "SMA-1"
-		asset_name = "Special Mention Account - 1"
-	elif 61 <= days_past_due <= 90:
-		asset_code = "SMA-2"
-		asset_name = "Special Mention Account - 2"
-	elif 91 <= days_past_due <= 365:
-		asset_code = "D1"
-		asset_name = "Substandard Asset"
-	elif 366 <= days_past_due <= 1098:
-		asset_code = "D2"
-		asset_name = "Doubtful Asset"
-	elif days_past_due >= 1099:
-		asset_code = "D3"
-		asset_name = "Loss Asset"
+	for range in ranges:
+		if range.min_range <= days_past_due <= range.max_range:
+			return range.asset_classification_code, range.asset_classification_name
 
 	return asset_code, asset_name
 
@@ -729,6 +606,7 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 		frappe.qb.from_(loan_interest_accrual)
 		.select(
 			loan_interest_accrual.loan,
+			loan_interest_accrual.company,
 			loan_interest_accrual.loan_type,
 			loan_interest_accrual.due_date,
 			loan_interest_accrual.applicant_type,

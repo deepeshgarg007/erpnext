@@ -93,6 +93,8 @@
   "budget_detail",
   "exception_budget_approver_role",
   "registration_info",
+  "loan_asset_classification_settings_section",
+  "asset_classification_ranges",
   "registration_details",
   "lft",
   "rgt",
@@ -694,6 +696,17 @@
    "label": "Default Provisional Account",
    "no_copy": 1,
    "options": "Account"
+  },
+  {
+   "fieldname": "loan_asset_classification_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Asset Classification Settings"
+  },
+  {
+   "fieldname": "asset_classification_ranges",
+   "fieldtype": "Table",
+   "label": "Asset Classification Ranges",
+   "options": "Loan Asset Classification Range"
   }
  ],
  "icon": "fa fa-building",
@@ -701,7 +714,7 @@
  "image_field": "company_logo",
  "is_tree": 1,
  "links": [],
- "modified": "2022-08-16 16:09:02.327724",
+ "modified": "2023-05-06 16:40:13.042468",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",

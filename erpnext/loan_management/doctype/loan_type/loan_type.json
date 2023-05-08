@@ -35,6 +35,11 @@
   "column_break_amrb",
   "penalty_waiver_account",
   "charges_waiver_account",
+  "loan_capitalization_accounts_section",
+  "interest_capitalization_account",
+  "penalty_capitalization_account",
+  "column_break_lexw",
+  "other_charges_capitalization_account",
   "amended_from"
  ],
  "fields": [
@@ -230,12 +235,39 @@
    "fieldtype": "Link",
    "label": "Charges Waiver Account",
    "options": "Account"
+  },
+  {
+   "fieldname": "loan_capitalization_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Capitalization Accounts"
+  },
+  {
+   "fieldname": "interest_capitalization_account",
+   "fieldtype": "Link",
+   "label": "Interest Capitalization Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_lexw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "other_charges_capitalization_account",
+   "fieldtype": "Link",
+   "label": "Other Charges Capitalization Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "penalty_capitalization_account",
+   "fieldtype": "Link",
+   "label": "Penalty Capitalization Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-03 19:50:49.191225",
+ "modified": "2023-05-07 13:10:24.194673",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

@@ -218,33 +218,55 @@ def make_accrual_interest_entry_for_term_loans(
 
 
 def get_term_loans(date, term_loan=None, loan_type=None):
-	condition = ""
+	loan = frappe.qb.DocType("Loan")
+	loan_schedule = frappe.qb.DocType("Loan Repayment Schedule")
+	loan_repayment_schedule = frappe.qb.DocType("Repayment Schedule")
+
+	query = (
+		frappe.qb.from_(loan)
+		.inner_join(loan_schedule)
+		.on(loan.name == loan_schedule.loan)
+		.inner_join(loan_repayment_schedule)
+		.on(loan_repayment_schedule.parent == loan_schedule.name)
+		.select(
+			loan.name,
+			loan.total_payment,
+			loan.total_amount_paid,
+			loan.loan_account,
+			loan.interest_income_account,
+			loan.is_term_loan,
+			loan.disbursement_date,
+			loan.applicant_type,
+			loan.applicant,
+			loan.rate_of_interest,
+			loan.total_interest_payable,
+			loan.repayment_start_date,
+			loan_repayment_schedule.name.as_("payment_entry"),
+			loan_repayment_schedule.payment_date,
+			loan_repayment_schedule.principal_amount,
+			loan_repayment_schedule.interest_amount,
+			loan_repayment_schedule.is_accrued,
+			loan_repayment_schedule.balance_loan_amount,
+		)
+		.where(
+			(loan.docstatus == 1)
+			& (loan.status == "Disbursed")
+			& (loan.is_term_loan == 1)
+			& (loan_repayment_schedule.status != "Restructured")
+			& (loan_repayment_schedule.principal_amount > 0)
+			& (loan_repayment_schedule.payment_date <= date)
+			& (loan_repayment_schedule.is_accrued == 0)
+			& (loan_repayment_schedule.docstatus == 1)
+		)
+	)
 
 	if term_loan:
-		condition += " AND l.name = %s" % frappe.db.escape(term_loan)
+		query = query.where(loan.name == term_loan)
 
 	if loan_type:
-		condition += " AND l.loan_type = %s" % frappe.db.escape(loan_type)
+		query = query.where(loan.loan_type == loan_type)
 
-	term_loans = frappe.db.sql(
-		"""SELECT l.name, l.total_payment, l.total_amount_paid, l.loan_account,
-			l.interest_income_account, l.is_term_loan, l.disbursement_date, l.applicant_type, l.applicant,
-			l.rate_of_interest, l.total_interest_payable, l.repayment_start_date, rs.name as payment_entry,
-			rs.payment_date, rs.principal_amount, rs.interest_amount, rs.is_accrued , rs.balance_loan_amount
-			FROM `tabLoan` l, `tabRepayment Schedule` rs
-			WHERE rs.parent = l.name
-			AND l.docstatus=1
-			AND l.is_term_loan =1
-			AND rs.payment_date <= %s
-			AND rs.is_accrued=0 {0}
-			AND rs.principal_amount > 0
-			AND l.status = 'Disbursed'
-			ORDER BY rs.payment_date""".format(
-			condition
-		),
-		(getdate(date)),
-		as_dict=1,
-	)
+	term_loans = query.run(as_dict=1)
 
 	return term_loans
 
