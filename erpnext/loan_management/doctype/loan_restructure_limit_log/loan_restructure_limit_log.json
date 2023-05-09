@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-05-08 16:03:20.333618",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "branch",
+  "company",
+  "date",
+  "principal_outstanding",
+  "limit_percent",
+  "limit_amount",
+  "utilized_limit",
+  "in_process_limit",
+  "available_limit"
+ ],
+ "fields": [
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "principal_outstanding",
+   "fieldtype": "Currency",
+   "label": "Principal Outstanding"
+  },
+  {
+   "fieldname": "limit_percent",
+   "fieldtype": "Percent",
+   "label": "Limit Percent"
+  },
+  {
+   "fieldname": "limit_amount",
+   "fieldtype": "Currency",
+   "label": "Limit Amount"
+  },
+  {
+   "fieldname": "utilized_limit",
+   "fieldtype": "Currency",
+   "label": "Utilized Limit"
+  },
+  {
+   "fieldname": "in_process_limit",
+   "fieldtype": "Currency",
+   "label": "In Process Limit"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "available_limit",
+   "fieldtype": "Currency",
+   "label": "Available Limit"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-05-08 17:47:14.396473",
+ "modified_by": "Administrator",
+ "module": "Loan Management",
+ "name": "Loan Restructure Limit Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

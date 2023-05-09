@@ -102,6 +102,7 @@ class Loan(AccountsController):
 					"repayment_periods": self.repayment_periods,
 					"repayment_method": self.repayment_method,
 					"repayment_start_date": self.repayment_start_date,
+					"posting_date": self.posting_date,
 				}
 			)
 			schedule.save()
@@ -116,6 +117,7 @@ class Loan(AccountsController):
 					"loan_amount": self.loan_amount,
 					"loan_type": self.loan_type,
 					"rate_of_interest": self.rate_of_interest,
+					"posting_date": self.posting_date,
 				}
 			).insert()
 
@@ -523,6 +525,9 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 	for loan in accruals:
 		is_npa = 0
 		days_past_due = date_diff(getdate(posting_date), getdate(loan.due_date))
+		if days_past_due < 0:
+			days_past_due = 0
+
 		threshold = threshold_map.get(loan.loan_type, 0)
 
 		if days_past_due and threshold and days_past_due > threshold:
@@ -630,7 +635,12 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 	if loan_name:
 		query = query.where(loan_interest_accrual.loan == loan_name)
 
-	return query.run(as_dict=1)
+	loans = query.run(as_dict=1)
+
+	# filter not required accruals:
+	filtered_list = list({loan["loan"]: loan for loan in loans}.values())
+
+	return filtered_list
 
 
 def get_dpd_threshold_map():

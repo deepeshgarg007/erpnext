@@ -24,6 +24,7 @@ class LoanBalanceAdjustment(AccountsController):
 		if self.amount < 0:
 			frappe.throw(_("Amount cannot be negative"))
 		self.set_missing_values()
+		self.validate_if_restructure_in_process()
 
 	def on_submit(self):
 		self.set_status_and_amounts()
@@ -40,6 +41,13 @@ class LoanBalanceAdjustment(AccountsController):
 
 		if not self.cost_center:
 			self.cost_center = erpnext.get_default_cost_center(self.company)
+
+	def validate_if_restructure_in_process(self):
+		if frappe.db.get_value(
+			"Loan Restructure",
+			{"loan": self.loan, "docstatus": 1, "status": "Initiated", "name": ("!=", self.reference_name)},
+		):
+			frappe.throw(_("Loan Restructure is in process. Cannot make any loan adjustment"))
 
 	def set_status_and_amounts(self, cancel=0):
 		loan_details = frappe.db.get_value(

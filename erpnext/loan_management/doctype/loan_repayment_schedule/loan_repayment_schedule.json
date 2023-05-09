@@ -10,6 +10,7 @@
   "loan",
   "loan_amount",
   "rate_of_interest",
+  "posting_date",
   "column_break_n6iy",
   "loan_type",
   "repayment_schedule_type",
@@ -116,12 +117,17 @@
    "fieldname": "rate_of_interest",
    "fieldtype": "Float",
    "label": "Rate Of Interest"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-06 08:30:36.448771",
+ "modified": "2023-05-09 11:53:06.697764",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment Schedule",

@@ -92,14 +92,16 @@
   {
    "fetch_from": "loan.interest_income_account",
    "fieldname": "interest_income_account",
-   "fieldtype": "Data",
-   "label": "Interest Income Account"
+   "fieldtype": "Link",
+   "label": "Interest Income Account",
+   "options": "Account"
   },
   {
    "fetch_from": "loan.loan_account",
    "fieldname": "loan_account",
-   "fieldtype": "Data",
-   "label": "Loan Account"
+   "fieldtype": "Link",
+   "label": "Loan Account",
+   "options": "Account"
   },
   {
    "fieldname": "section_break_7",
@@ -209,7 +211,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-22 19:08:42.718173",
+ "modified": "2023-05-09 12:14:37.471632",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Interest Accrual",

@@ -38,6 +38,11 @@ class LoanRepaymentSchedule(Document):
 		self.repayment_schedule = []
 		payment_date = self.repayment_start_date
 		balance_amount = self.loan_amount
+		bmi_days = date_diff(add_months(payment_date, -1), self.posting_date)
+		additional_days = 0
+
+		if bmi_days > 0:
+			additional_days = bmi_days
 
 		while balance_amount > 0:
 			interest_amount, principal_amount, balance_amount, total_payment, days = self.get_amounts(
@@ -45,6 +50,7 @@ class LoanRepaymentSchedule(Document):
 				balance_amount,
 				schedule_type_details.repayment_schedule_type,
 				schedule_type_details.repayment_date_on,
+				additional_days,
 			)
 
 			if schedule_type_details.repayment_schedule_type == "Pro-rated calendar months":
@@ -78,6 +84,9 @@ class LoanRepaymentSchedule(Document):
 				next_payment_date = add_single_month(payment_date)
 				payment_date = next_payment_date
 
+			if additional_days > 0:
+				additional_days = 0
+
 	def validate_repayment_method(self):
 		if self.repayment_method == "Repay Over Number of Periods" and not self.repayment_periods:
 			frappe.throw(_("Please enter Repayment Periods"))
@@ -88,7 +97,9 @@ class LoanRepaymentSchedule(Document):
 			if self.monthly_repayment_amount > self.loan_amount:
 				frappe.throw(_("Monthly Repayment Amount cannot be greater than Loan Amount"))
 
-	def get_amounts(self, payment_date, balance_amount, schedule_type, repayment_date_on):
+	def get_amounts(
+		self, payment_date, balance_amount, schedule_type, repayment_date_on, additional_days
+	):
 		if schedule_type == "Monthly as per repayment start date":
 			days = 1
 			months = 12
@@ -100,6 +111,9 @@ class LoanRepaymentSchedule(Document):
 			if schedule_type == "Monthly as per cycle date":
 				days = date_diff(add_months(payment_date, 1), payment_date)
 				months = 365
+				if additional_days > 0:
+					days += additional_days
+					additional_days = 0
 			elif expected_payment_date == payment_date:
 				# using 30 days for calculating interest for all full months
 				days = 30

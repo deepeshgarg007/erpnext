@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class LoanRestructureLimit(Document):
+class LoanCharges(Document):
 	pass

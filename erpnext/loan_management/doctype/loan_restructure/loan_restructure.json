@@ -13,14 +13,17 @@
   "repayment_method",
   "restructure_type",
   "branch",
+  "status",
   "column_break_xph8",
   "company",
   "restructure_date",
   "reason_for_restructure",
+  "current_restructure_count",
   "loan_details_section",
   "loan_type",
   "old_rate_of_interest",
   "disbursed_amount",
+  "unaccrued_interest",
   "pending_principal_amount",
   "pre_restructure_dpd",
   "column_break_dbdn",
@@ -30,16 +33,14 @@
   "penalty_overdue",
   "charges_overdue",
   "loan_waiver_details_section",
-  "principal_waiver_amount",
   "interest_waiver_amount",
-  "capitalize_normal_interest",
   "capitalize_penal_interest",
   "capitalize_other_charges",
   "column_break_a6aq",
   "penal_interest_waiver",
   "other_charges_waiver",
-  "carry_forward_pending_charges",
   "carry_forward_penalty_interest",
+  "carry_forward_pending_charges",
   "loan_restructure_details_section",
   "new_rate_of_interest",
   "repayment_start_date",
@@ -166,12 +167,6 @@
    "fieldname": "loan_waiver_details_section",
    "fieldtype": "Section Break",
    "label": "Loan Waiver Details"
-  },
-  {
-   "fieldname": "principal_waiver_amount",
-   "fieldtype": "Currency",
-   "label": "Principal Waiver Amount",
-   "options": "Company:company:default_currency"
   },
   {
    "fieldname": "interest_waiver_amount",
@@ -307,12 +302,6 @@
    "options": "Branch"
   },
   {
-   "default": "0",
-   "fieldname": "capitalize_normal_interest",
-   "fieldtype": "Check",
-   "label": "Capitalize Normal Interest"
-  },
-  {
    "fieldname": "penalty_overdue",
    "fieldtype": "Currency",
    "label": "Penalty Overdue",
@@ -323,12 +312,31 @@
    "fieldname": "repayment_method",
    "fieldtype": "Data",
    "label": "Repayment Method"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Initiated\nApproved\nRejected"
+  },
+  {
+   "fieldname": "current_restructure_count",
+   "fieldtype": "Int",
+   "label": "Current Restructure Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unaccrued_interest",
+   "fieldtype": "Currency",
+   "label": "Unaccrued Interest",
+   "options": "Company:company:default_currency"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-07 18:38:14.826289",
+ "modified": "2023-05-09 13:07:51.844940",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

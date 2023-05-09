@@ -287,7 +287,7 @@ class LoanRepayment(AccountsController):
 
 		interest_paid -= self.principal_amount_paid
 
-		if interest_paid > 0 and not self.offset_repayment_based_on_npa:
+		if interest_paid > 0 and not self.offset_based_on_npa:
 			if self.penalty_amount and interest_paid > self.penalty_amount:
 				self.total_penalty_paid = flt(self.penalty_amount, precision)
 			elif self.penalty_amount:

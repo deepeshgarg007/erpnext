@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestLoanRestructureLimit(FrappeTestCase):
+class TestLoanRestructureLimitLog(FrappeTestCase):
 	pass
