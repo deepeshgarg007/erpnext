@@ -319,6 +319,7 @@ class LoanRepayment(AccountsController):
 				self.allocate_as_per_non_npa(interest_paid, repayment_details)
 
 	def allocate_as_per_non_npa(self, interest_paid, repayment_details):
+		self.total_interest_paid = 0
 		for lia, amounts in repayment_details.get("pending_accrual_entries", []).items():
 			interest_amount = 0
 			principal_amount = 0
