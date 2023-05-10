@@ -103,6 +103,7 @@ class Loan(AccountsController):
 					"repayment_method": self.repayment_method,
 					"repayment_start_date": self.repayment_start_date,
 					"posting_date": self.posting_date,
+					"loan_amount": self.loan_amount,
 				}
 			)
 			schedule.save()
@@ -516,7 +517,9 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 
 
 @frappe.whitelist()
-def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=None):
+def update_days_past_due_in_loans(
+	posting_date=None, loan_type=None, loan_name=None, event_type=None
+):
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
@@ -543,9 +546,10 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 			days_past_due,
 			is_npa,
 			posting_date or getdate(),
+			event_type,
 		)
 
-		create_dpd_record(loan.loan, posting_date, days_past_due)
+		create_dpd_record(loan.loan, posting_date, days_past_due, event_type)
 		checked_loans.append(loan.loan)
 
 	open_loans_with_no_overdue = []
@@ -564,27 +568,32 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 
 	for d in open_loans_with_no_overdue:
 		update_loan_and_customer_status(
-			d.name, d.company, d.applicant_type, d.applicant, 0, 0, posting_date or getdate()
+			d.name, d.company, d.applicant_type, d.applicant, 0, 0, posting_date or getdate(), event_type
 		)
 
-		create_dpd_record(d.name, posting_date, 0)
+		create_dpd_record(d.name, posting_date, 0, event_type)
 
 
-def create_dpd_record(loan, posting_date, days_past_due):
+def create_dpd_record(loan, posting_date, days_past_due, event_type):
 	frappe.get_doc(
 		{
 			"doctype": "Days Past Due Log",
 			"loan": loan,
 			"posting_date": posting_date,
 			"days_past_due": days_past_due,
+			"event_type": event_type,
 		}
 	).insert(ignore_permissions=True)
 
 
 def update_loan_and_customer_status(
-	loan, company, applicant_type, applicant, days_past_due, is_npa, posting_date
+	loan, company, applicant_type, applicant, days_past_due, is_npa, posting_date, event_type
 ):
 	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due, company)
+	previous_npa = frappe.db.get_value("Loan", loan, "is_npa")
+
+	if is_npa and not previous_npa and event_type != "Repayment Cancel":
+		move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 
 	frappe.db.set_value(
 		"Loan",
@@ -606,7 +615,6 @@ def update_loan_and_customer_status(
 		).run()
 
 		frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
-		move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -616,7 +624,7 @@ def update_loan_and_customer_status(
 		if max_dpd == 0:
 			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 			_loan = frappe.qb.DocType("Loan")
-			frappe.qb.update("Loan").set(_loan.is_npa, is_npa).where(
+			frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, is_npa).where(
 				(_loan.docstatus == 1)
 				& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
 				& (_loan.applicant_type == applicant_type)

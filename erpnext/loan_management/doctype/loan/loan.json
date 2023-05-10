@@ -392,6 +392,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.docstatus == 1",
    "description": "Loan is a Non Performing Asset",
    "fieldname": "is_npa",
    "fieldtype": "Check",
@@ -415,6 +416,7 @@
   {
    "allow_on_submit": 1,
    "default": "0",
+   "depends_on": "eval:doc.docstatus == 1",
    "description": "Manually marked as NPA",
    "fieldname": "manual_npa",
    "fieldtype": "Check",
@@ -450,7 +452,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-10 15:12:44.013718",
+ "modified": "2023-05-10 17:59:14.705016",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

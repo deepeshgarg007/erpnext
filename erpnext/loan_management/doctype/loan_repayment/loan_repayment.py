@@ -40,7 +40,10 @@ class LoanRepayment(AccountsController):
 		# self.update_repayment_schedule()
 		self.make_gl_entries()
 		create_process_asset_classification(
-			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
+			posting_date=self.posting_date,
+			loan_type=self.loan_type,
+			loan=self.against_loan,
+			event_type="Repayment",
 		)
 
 	def on_cancel(self):
@@ -50,7 +53,10 @@ class LoanRepayment(AccountsController):
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 		self.make_gl_entries(cancel=1)
 		create_process_asset_classification(
-			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
+			posting_date=self.posting_date,
+			loan_type=self.loan_type,
+			loan=self.against_loan,
+			event_type="Repayment Cancel",
 		)
 
 	def set_missing_values(self, amounts):
@@ -645,8 +651,8 @@ class LoanRepayment(AccountsController):
 					)
 				)
 
-			if gle_map:
-				make_gl_entries(gle_map, cancel=cancel, adv_adj=adv_adj, merge_entries=False)
+		if gle_map:
+			make_gl_entries(gle_map, cancel=cancel, adv_adj=adv_adj, merge_entries=False)
 
 
 def create_repayment_entry(

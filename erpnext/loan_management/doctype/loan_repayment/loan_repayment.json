@@ -38,6 +38,7 @@
   "principal_amount_paid",
   "total_penalty_paid",
   "total_interest_paid",
+  "section_break_55wc",
   "repayment_details",
   "amended_from",
   "accounting_details_section",
@@ -219,9 +220,9 @@
   {
    "fieldname": "repayment_details",
    "fieldtype": "Table",
-   "hidden": 1,
    "label": "Repayment Details",
-   "options": "Loan Repayment Detail"
+   "options": "Loan Repayment Detail",
+   "read_only": 1
   },
   {
    "fieldname": "total_interest_paid",
@@ -311,12 +312,16 @@
    "fieldname": "days_past_due",
    "fieldtype": "Int",
    "label": "Days Past Due"
+  },
+  {
+   "fieldname": "section_break_55wc",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-10 11:00:50.253425",
+ "modified": "2023-05-10 17:43:55.817675",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment",
