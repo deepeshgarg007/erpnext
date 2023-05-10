@@ -524,8 +524,6 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 	threshold_map = get_dpd_threshold_map()
 	checked_loans = []
 
-	print("In Update Past Due")
-
 	for loan in accruals:
 		is_npa = 0
 		days_past_due = date_diff(getdate(posting_date), getdate(loan.due_date))
@@ -538,7 +536,13 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 			is_npa = 1
 
 		update_loan_and_customer_status(
-			loan.loan, loan.company, loan.applicant_type, loan.applicant, days_past_due, is_npa
+			loan.loan,
+			loan.company,
+			loan.applicant_type,
+			loan.applicant,
+			days_past_due,
+			is_npa,
+			posting_date or getdate(),
 		)
 
 		create_dpd_record(loan.loan, posting_date, days_past_due)
@@ -559,7 +563,9 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 		)
 
 	for d in open_loans_with_no_overdue:
-		update_loan_and_customer_status(d.name, d.company, d.applicant_type, d.applicant, 0, 0)
+		update_loan_and_customer_status(
+			d.name, d.company, d.applicant_type, d.applicant, 0, 0, posting_date or getdate()
+		)
 
 		create_dpd_record(d.name, posting_date, 0)
 
@@ -576,9 +582,8 @@ def create_dpd_record(loan, posting_date, days_past_due):
 
 
 def update_loan_and_customer_status(
-	loan, company, applicant_type, applicant, days_past_due, is_npa
+	loan, company, applicant_type, applicant, days_past_due, is_npa, posting_date
 ):
-	print(loan, company, applicant_type, applicant, days_past_due, is_npa, "######")
 	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due, company)
 
 	frappe.db.set_value(
@@ -601,7 +606,7 @@ def update_loan_and_customer_status(
 		).run()
 
 		frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
-		move_unpaid_interest_to_suspense_ledger(loan)
+		move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -686,7 +691,7 @@ def get_dpd_threshold_map():
 	)
 
 
-def move_unpaid_interest_to_suspense_ledger(loan):
+def move_unpaid_interest_to_suspense_ledger(loan, posting_date):
 	loan_doc = frappe.get_doc("Loan", loan)
 	account_details = frappe.get_value(
 		"Loan Type",
@@ -710,7 +715,7 @@ def move_unpaid_interest_to_suspense_ledger(loan):
 			{
 				"doctype": "Journal Entry",
 				"voucher_type": "Journal Entry",
-				"posting_date": getdate(),
+				"posting_date": posting_date,
 				"company": loan_doc.company,
 				"accounts": [
 					{
