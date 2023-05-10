@@ -320,7 +320,7 @@ class LoanRepayment(AccountsController):
 				as_dict=1,
 			)
 
-			if (offset_base_on.collection_offset_logic_based_on == "NPA Flag" and self.is_nap) or (
+			if (offset_base_on.collection_offset_logic_based_on == "NPA Flag" and self.is_npa) or (
 				offset_base_on.collection_offset_logic_based_on == "Days Past Due"
 				and self.days_past_due > cint(offset_base_on.days_past_due_threshold)
 			):
