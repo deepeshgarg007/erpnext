@@ -523,7 +523,7 @@ def update_days_past_due_in_loans(
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
-	accruals = get_pending_loan_interest_accruals(loan_type, loan_name)
+	accruals = get_pending_loan_interest_accruals(loan_type, loan_name, filter_entries=False)
 	threshold_map = get_dpd_threshold_map()
 	checked_loans = []
 
@@ -649,7 +649,7 @@ def get_asset_classification_code_and_name(days_past_due, company):
 	return asset_code, asset_name
 
 
-def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
+def get_pending_loan_interest_accruals(loan_type=None, loan_name=None, filter_entries=True):
 	"""Get pending loan interest accruals"""
 	loan_interest_accrual = frappe.qb.DocType("Loan Interest Accrual")
 
@@ -687,10 +687,11 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 
 	loans = query.run(as_dict=1)
 
-	# filter not required accruals:
-	filtered_list = list({loan["loan"]: loan for loan in loans}.values())
+	if filter_entries:
+		# filter not required accruals:
+		loans = list({loan["loan"]: loan for loan in loans}.values())
 
-	return filtered_list
+	return loans
 
 
 def get_dpd_threshold_map():
