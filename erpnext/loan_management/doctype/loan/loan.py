@@ -620,9 +620,10 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 		.where(
 			(loan_interest_accrual.docstatus == 1)
 			& (
-				(loan_interest_accrual.interest_amount > loan_interest_accrual.paid_interest_amount)
+				(loan_interest_accrual.interest_amount - loan_interest_accrual.paid_interest_amount > 0.01)
 				| (
-					loan_interest_accrual.payable_principal_amount > loan_interest_accrual.paid_principal_amount
+					loan_interest_accrual.payable_principal_amount - loan_interest_accrual.paid_principal_amount
+					> 0.01
 				)
 			)
 		)
