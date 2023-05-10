@@ -41,15 +41,28 @@ class LoanInterestAccrual(AccountsController):
 		gle_map = []
 
 		cost_center = frappe.db.get_value("Loan", self.loan, "cost_center")
+		account_details = frappe.db.get_value(
+			"Loan Type",
+			self.loan_type,
+			["interest_receivable_account", "suspense_interest_receivable", "suspense_interest_income"],
+			as_dict=1,
+		)
+
+		if self.is_npa:
+			receivable_account = account_details.suspense_interest_receivable
+			income_account = account_details.suspense_interest_income
+		else:
+			receivable_account = account_details.interest_receivable_account
+			income_account = self.interest_income_account
 
 		if self.interest_amount:
 			gle_map.append(
 				self.get_gl_dict(
 					{
-						"account": self.loan_account,
+						"account": receivable_account,
 						"party_type": self.applicant_type,
 						"party": self.applicant,
-						"against": self.interest_income_account,
+						"against": income_account,
 						"debit": self.interest_amount,
 						"debit_in_account_currency": self.interest_amount,
 						"against_voucher_type": "Loan",
@@ -66,8 +79,8 @@ class LoanInterestAccrual(AccountsController):
 			gle_map.append(
 				self.get_gl_dict(
 					{
-						"account": self.interest_income_account,
-						"against": self.loan_account,
+						"account": income_account,
+						"against": receivable_account,
 						"credit": self.interest_amount,
 						"credit_in_account_currency": self.interest_amount,
 						"against_voucher_type": "Loan",
@@ -86,7 +99,7 @@ class LoanInterestAccrual(AccountsController):
 
 
 # For Eg: If Loan disbursement date is '01-09-2019' and disbursed amount is 1000000 and
-# rate of interest is 13.5 then first loan interest accural will be on '01-10-2019'
+# rate of interest is 13.5 then first loan interest accrual will be on '01-10-2019'
 # which means interest will be accrued for 30 days which should be equal to 11095.89
 def calculate_accrual_amount_for_demand_loans(
 	loan, posting_date, process_loan_interest, accrual_type

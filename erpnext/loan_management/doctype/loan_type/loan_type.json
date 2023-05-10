@@ -24,10 +24,15 @@
   "mode_of_payment",
   "disbursement_account",
   "payment_account",
+  "suspense_interest_receivable",
+  "suspense_interest_income",
+  "suspense_collection_account",
   "column_break_12",
-  "use_separate_accounts_for_npa_loans",
   "loan_account",
   "interest_income_account",
+  "interest_receivable_account",
+  "penalty_receivable_account",
+  "charges_receivable_account",
   "penalty_income_account",
   "loan_waiver_accounts_section",
   "principal_waiver_account",
@@ -35,11 +40,8 @@
   "column_break_amrb",
   "penalty_waiver_account",
   "charges_waiver_account",
-  "loan_capitalization_accounts_section",
-  "interest_capitalization_account",
-  "penalty_capitalization_account",
-  "column_break_lexw",
-  "other_charges_capitalization_account",
+  "section_break_ia6s",
+  "loan_charges",
   "amended_from"
  ],
  "fields": [
@@ -198,12 +200,6 @@
    "label": "Days Past Due Threshold for NPA"
   },
   {
-   "default": "0",
-   "fieldname": "use_separate_accounts_for_npa_loans",
-   "fieldtype": "Check",
-   "label": "Use Separate Accounts For NPA Loans"
-  },
-  {
    "fieldname": "loan_waiver_accounts_section",
    "fieldtype": "Section Break",
    "label": "Loan Waiver Accounts"
@@ -237,37 +233,59 @@
    "options": "Account"
   },
   {
-   "fieldname": "loan_capitalization_accounts_section",
-   "fieldtype": "Section Break",
-   "label": "Loan Capitalization Accounts"
-  },
-  {
-   "fieldname": "interest_capitalization_account",
+   "fieldname": "suspense_interest_receivable",
    "fieldtype": "Link",
-   "label": "Interest Capitalization Account",
+   "label": "Suspense Interest Receivable",
    "options": "Account"
   },
   {
-   "fieldname": "column_break_lexw",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "other_charges_capitalization_account",
+   "fieldname": "suspense_interest_income",
    "fieldtype": "Link",
-   "label": "Other Charges Capitalization Account",
+   "label": "Suspense Interest Income",
    "options": "Account"
   },
   {
-   "fieldname": "penalty_capitalization_account",
+   "fieldname": "suspense_collection_account",
    "fieldtype": "Link",
-   "label": "Penalty Capitalization Account",
+   "label": "Suspense Collection Account",
    "options": "Account"
+  },
+  {
+   "fieldname": "interest_receivable_account",
+   "fieldtype": "Link",
+   "label": "Interest Receivable Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "penalty_receivable_account",
+   "fieldtype": "Link",
+   "label": "Penalty Receivable Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "charges_receivable_account",
+   "fieldtype": "Link",
+   "label": "Charges Receivable Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_ia6s",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "loan_charges",
+   "fieldtype": "Table",
+   "label": "Loan Charges",
+   "options": "Loan Charges"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-07 13:10:24.194673",
+ "modified": "2023-05-10 07:30:57.423503",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

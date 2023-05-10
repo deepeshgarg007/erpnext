@@ -4,6 +4,7 @@ def get_data():
 		"non_standard_fieldnames": {
 			"Loan Disbursement": "against_loan",
 			"Loan Repayment": "against_loan",
+			"Journal Entry": "reference_name",
 		},
 		"transactions": [
 			{
@@ -21,6 +22,6 @@ def get_data():
 					"Loan Write Off",
 				]
 			},
-			{"items": ["Loan Security Unpledge", "Days Past Due Log"]},
+			{"items": ["Loan Security Unpledge", "Days Past Due Log", "Journal Entry"]},
 		],
 	}

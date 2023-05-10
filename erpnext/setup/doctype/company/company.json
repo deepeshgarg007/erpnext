@@ -96,6 +96,10 @@
   "loan_asset_classification_settings_section",
   "loan_restructure_limit",
   "delinquent_limit",
+  "column_break_4a9y",
+  "collection_offset_logic_based_on",
+  "days_past_due_threshold",
+  "section_break_m9wy",
   "asset_classification_ranges",
   "registration_details",
   "lft",
@@ -719,6 +723,26 @@
    "fieldname": "delinquent_limit",
    "fieldtype": "Percent",
    "label": "Delinquent Limit"
+  },
+  {
+   "fieldname": "column_break_4a9y",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "collection_offset_logic_based_on",
+   "fieldtype": "Select",
+   "label": "Collection Offset Logic Based On",
+   "options": "NPA Flag\nDays Past Due"
+  },
+  {
+   "depends_on": "eval: doc.collection_offset_logic_based_on == \"Days Past Due\"",
+   "fieldname": "days_past_due_threshold",
+   "fieldtype": "Int",
+   "label": "Days Past Due Threshold"
+  },
+  {
+   "fieldname": "section_break_m9wy",
+   "fieldtype": "Section Break"
   }
  ],
  "icon": "fa fa-building",
@@ -726,7 +750,7 @@
  "image_field": "company_logo",
  "is_tree": 1,
  "links": [],
- "modified": "2023-05-08 17:40:05.653357",
+ "modified": "2023-05-10 10:56:48.882267",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",

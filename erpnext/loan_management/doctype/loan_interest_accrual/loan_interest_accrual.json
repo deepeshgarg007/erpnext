@@ -18,6 +18,7 @@
   "due_date",
   "accrual_type",
   "is_term_loan",
+  "is_npa",
   "section_break_7",
   "pending_principal_amount",
   "payable_principal_amount",
@@ -205,13 +206,20 @@
    "label": "Loan Type",
    "options": "Loan Type",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "loan.manual_npa",
+   "fieldname": "is_npa",
+   "fieldtype": "Check",
+   "label": "Is NPA"
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-09 12:14:37.471632",
+ "modified": "2023-05-10 11:43:51.963869",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Interest Accrual",

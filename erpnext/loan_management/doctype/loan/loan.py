@@ -522,6 +522,10 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 
 	accruals = get_pending_loan_interest_accruals(loan_type, loan_name)
 	threshold_map = get_dpd_threshold_map()
+	checked_loans = []
+
+	print("In Update Past Due")
+
 	for loan in accruals:
 		is_npa = 0
 		days_past_due = date_diff(getdate(posting_date), getdate(loan.due_date))
@@ -538,6 +542,26 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 		)
 
 		create_dpd_record(loan.loan, posting_date, days_past_due)
+		checked_loans.append(loan.loan)
+
+	open_loans_with_no_overdue = []
+	if loan_name and not accruals:
+		open_loans_with_no_overdue = [
+			frappe.db.get_value(
+				"Loan", loan_name, ["name", "company", "applicant_type", "applicant"], as_dict=1
+			)
+		]
+	elif not loan_name:
+		open_loans_with_no_overdue = frappe.db.get_all(
+			"Loan",
+			{"status": "Disbursed", "docstatus": 1, "name": ("not in", checked_loans)},
+			["name", "company", "applicant_type", "applicant"],
+		)
+
+	for d in open_loans_with_no_overdue:
+		update_loan_and_customer_status(d.name, d.company, d.applicant_type, d.applicant, 0, 0)
+
+		create_dpd_record(d.name, posting_date, 0)
 
 
 def create_dpd_record(loan, posting_date, days_past_due):
@@ -554,6 +578,7 @@ def create_dpd_record(loan, posting_date, days_past_due):
 def update_loan_and_customer_status(
 	loan, company, applicant_type, applicant, days_past_due, is_npa
 ):
+	print(loan, company, applicant_type, applicant, days_past_due, is_npa, "######")
 	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due, company)
 
 	frappe.db.set_value(
@@ -567,15 +592,16 @@ def update_loan_and_customer_status(
 	)
 
 	if is_npa:
-		loan = frappe.qb.DocType("Loan")
-		frappe.qb.update("Loan").set(loan.is_npa, is_npa).set(loan.manual_npa, is_npa).where(
-			(loan.docstatus == 1)
-			& (loan.status.isin(["Disbursed", "Partially Disbursed"]))
-			& (loan.applicant_type == applicant_type)
-			& (loan.applicant == applicant)
+		_loan = frappe.qb.DocType("Loan")
+		frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, _loan.is_npa).where(
+			(_loan.docstatus == 1)
+			& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
+			& (_loan.applicant_type == applicant_type)
+			& (_loan.applicant == applicant)
 		).run()
 
 		frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
+		move_unpaid_interest_to_suspense_ledger(loan)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -584,6 +610,13 @@ def update_loan_and_customer_status(
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
 		if max_dpd == 0:
 			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
+			_loan = frappe.qb.DocType("Loan")
+			frappe.qb.update("Loan").set(_loan.is_npa, is_npa).where(
+				(_loan.docstatus == 1)
+				& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
+				& (_loan.applicant_type == applicant_type)
+				& (_loan.applicant == applicant)
+			).run()
 
 
 def get_asset_classification_code_and_name(days_past_due, company):
@@ -610,12 +643,15 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None):
 	query = (
 		frappe.qb.from_(loan_interest_accrual)
 		.select(
+			loan_interest_accrual.name,
 			loan_interest_accrual.loan,
 			loan_interest_accrual.company,
 			loan_interest_accrual.loan_type,
 			loan_interest_accrual.due_date,
 			loan_interest_accrual.applicant_type,
 			loan_interest_accrual.applicant,
+			loan_interest_accrual.interest_amount,
+			loan_interest_accrual.paid_interest_amount,
 		)
 		.where(
 			(loan_interest_accrual.docstatus == 1)
@@ -648,3 +684,74 @@ def get_dpd_threshold_map():
 	return frappe._dict(
 		frappe.get_all("Loan Type", fields=["name", "days_past_due_threshold_for_npa"], as_list=1)
 	)
+
+
+def move_unpaid_interest_to_suspense_ledger(loan):
+	loan_doc = frappe.get_doc("Loan", loan)
+	account_details = frappe.get_value(
+		"Loan Type",
+		loan_doc.loan_type,
+		[
+			"suspense_interest_receivable",
+			"suspense_interest_income",
+			"interest_receivable_account",
+			"interest_income_account",
+		],
+		as_dict=1,
+	)
+
+	pending_loan_interest_accruals = get_pending_loan_interest_accruals(
+		loan_type=loan_doc.loan_type, loan_name=loan
+	)
+
+	for accrual in pending_loan_interest_accruals:
+		amount = accrual.interest_amount - accrual.paid_interest_amount
+		jv = frappe.get_doc(
+			{
+				"doctype": "Journal Entry",
+				"voucher_type": "Journal Entry",
+				"posting_date": getdate(),
+				"company": loan_doc.company,
+				"accounts": [
+					{
+						"account": account_details.suspense_interest_receivable,
+						"party": loan_doc.applicant,
+						"party_type": loan_doc.applicant_type,
+						"debit_in_account_currency": amount,
+						"debit": amount,
+						"reference_type": "Loan",
+						"reference_name": loan_doc.name,
+						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+					},
+					{
+						"account": account_details.interest_receivable_account,
+						"party": loan_doc.applicant,
+						"party_type": loan_doc.applicant_type,
+						"credit_in_account_currency": amount,
+						"credit": amount,
+						"reference_type": "Loan",
+						"reference_name": loan_doc.name,
+						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+					},
+					{
+						"account": account_details.suspense_interest_income,
+						"credit_in_account_currency": amount,
+						"credit": amount,
+						"reference_type": "Loan Interest Accrual",
+						"reference_name": accrual.name,
+						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+					},
+					{
+						"account": account_details.interest_income_account,
+						"debit": amount,
+						"debit_in_account_currency": amount,
+						"reference_type": "Loan Interest Accrual",
+						"reference_name": accrual.name,
+						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+					},
+				],
+			}
+		)
+
+		jv.flags.ignore_mandatory = True
+		jv.submit()

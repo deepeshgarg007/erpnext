@@ -16,7 +16,6 @@
   "disbursement_date",
   "clearance_date",
   "column_break_8",
-  "waive_off_charges",
   "disbursed_amount",
   "accounting_dimensions_section",
   "cost_center",
@@ -181,18 +180,12 @@
    "label": "Loan Account",
    "options": "Account",
    "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "waive_off_charges",
-   "fieldtype": "Check",
-   "label": "Waive Off Processing Fees/Charges"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-09 10:48:42.136115",
+ "modified": "2023-05-09 17:14:15.652914",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Disbursement",

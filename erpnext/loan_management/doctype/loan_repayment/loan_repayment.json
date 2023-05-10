@@ -15,6 +15,7 @@
   "posting_date",
   "clearance_date",
   "rate_of_interest",
+  "days_past_due",
   "is_term_loan",
   "offset_based_on_npa",
   "is_npa",
@@ -296,7 +297,7 @@
    "default": "0",
    "fieldname": "offset_based_on_npa",
    "fieldtype": "Check",
-   "label": "Offset Based On NPA"
+   "label": "Offset Based On Asset Classification"
   },
   {
    "default": "0",
@@ -304,12 +305,18 @@
    "fieldname": "is_npa",
    "fieldtype": "Check",
    "label": "Is NPA"
+  },
+  {
+   "fetch_from": "against_loan.days_past_due",
+   "fieldname": "days_past_due",
+   "fieldtype": "Int",
+   "label": "Days Past Due"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-27 21:15:05.528487",
+ "modified": "2023-05-10 11:00:50.253425",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment",
