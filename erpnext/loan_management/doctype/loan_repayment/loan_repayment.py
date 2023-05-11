@@ -354,9 +354,11 @@ class LoanRepayment(AccountsController):
 				if amounts["payable_principal_amount"] <= interest_paid:
 					principal_amount = amounts["payable_principal_amount"]
 					interest_paid -= principal_amount
+					self.principal_amount_paid += principal_amount
 				elif interest_paid:
 					principal_amount = interest_paid
 					interest_paid = 0
+					self.principal_amount_paid += principal_amount
 			elif interest_paid:
 				interest_amount = interest_paid
 				interest_paid = 0

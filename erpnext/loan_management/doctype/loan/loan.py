@@ -147,6 +147,8 @@ class Loan(AccountsController):
 			for data in schedule.repayment_schedule:
 				self.total_payment += data.total_payment
 				self.total_interest_payable += data.interest_amount
+
+			self.monthly_repayment_amount = schedule.monthly_repayment_amount
 		else:
 			self.total_payment = self.loan_amount
 
