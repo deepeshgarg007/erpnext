@@ -313,19 +313,19 @@
    "fieldname": "treatment_of_penal_interest",
    "fieldtype": "Select",
    "label": "Treatment Of Penal Interest",
-   "options": "\nCapitalize\nCarry Forward"
+   "options": "Capitalize\nCarry Forward"
   },
   {
    "fieldname": "treatment_of_other_charges",
    "fieldtype": "Select",
    "label": "Treatment Of Other Charges",
-   "options": "\nCapitalize\nCarry Forward"
+   "options": "Capitalize\nCarry Forward"
   },
   {
    "fieldname": "treatment_of_normal_interest",
    "fieldtype": "Select",
    "label": "Treatment of Normal Interest",
-   "options": "\nCapitalize\nAdd In First EMI"
+   "options": "Capitalize\nCarry Forward"
   },
   {
    "fieldname": "column_break_16cq",
@@ -344,7 +344,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-11 17:37:22.847936",
+ "modified": "2023-05-11 17:49:38.930030",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",
