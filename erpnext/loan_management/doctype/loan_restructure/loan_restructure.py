@@ -20,6 +20,10 @@ class LoanRestructure(AccountsController):
 		self.validate_branch_limit()
 		self.validate_new_loan_amount()
 		self.update_restructured_loan_details()
+		if self.docstatus == 1:
+			self.make_update_draft_loan_repayment_schedule()
+
+	def after_insert(self):
 		self.make_update_draft_loan_repayment_schedule()
 
 	def set_status(self, status=None):
@@ -165,7 +169,7 @@ class LoanRestructure(AccountsController):
 		if self.treatment_of_normal_interest == "Capitalize":
 			self.new_loan_amount += (
 				self.interest_overdue + self.unaccrued_interest
-			) + self.interest_waiver_amount
+			) - self.interest_waiver_amount
 		if self.treatment_of_penal_interest == "Capitalize":
 			self.new_loan_amount += self.charges_overdue - self.other_charges_waiver
 

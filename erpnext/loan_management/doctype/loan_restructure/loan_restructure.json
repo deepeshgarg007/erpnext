@@ -23,18 +23,19 @@
   "old_tenure",
   "old_rate_of_interest",
   "disbursed_amount",
+  "column_break_gl0p",
   "old_emi",
   "current_restructure_count",
   "pre_restructure_dpd",
-  "column_break_dbdn",
-  "pending_principal_amount",
-  "total_overdue_amount",
-  "principal_overdue",
+  "loan_amounts_section",
   "interest_overdue",
-  "unaccrued_interest",
   "penalty_overdue",
   "charges_overdue",
-  "loan_waiver_details_section",
+  "unaccrued_interest",
+  "principal_overdue",
+  "pending_principal_amount",
+  "total_overdue_amount",
+  "column_break_16cq",
   "interest_waiver_amount",
   "penal_interest_waiver",
   "other_charges_waiver",
@@ -113,10 +114,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_dbdn",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "reason_for_restructure",
    "fieldtype": "Small Text",
    "label": "Reason for Restructure"
@@ -151,11 +148,6 @@
   {
    "fieldname": "column_break_mqcp",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "loan_waiver_details_section",
-   "fieldtype": "Section Break",
-   "label": "Loan Waiver Details"
   },
   {
    "fieldname": "interest_waiver_amount",
@@ -334,12 +326,25 @@
    "fieldtype": "Select",
    "label": "Treatment of Normal Interest",
    "options": "\nCapitalize\nAdd In First EMI"
+  },
+  {
+   "fieldname": "column_break_16cq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "loan_amounts_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Amounts"
+  },
+  {
+   "fieldname": "column_break_gl0p",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-11 14:46:25.366011",
+ "modified": "2023-05-11 17:37:22.847936",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",
