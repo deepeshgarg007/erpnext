@@ -362,6 +362,7 @@ class LoanRepayment(AccountsController):
 			elif interest_paid:
 				interest_amount = interest_paid
 				interest_paid = 0
+				self.total_interest_paid += interest_amount
 
 			if interest_amount or principal_amount:
 				self.append(
