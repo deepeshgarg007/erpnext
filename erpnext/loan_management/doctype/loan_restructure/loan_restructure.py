@@ -167,14 +167,14 @@ class LoanRestructure(AccountsController):
 		self.new_loan_amount = self.pending_principal_amount
 
 		if self.treatment_of_normal_interest == "Capitalize":
-			self.new_loan_amount += (
-				self.interest_overdue + self.unaccrued_interest
-			) - self.interest_waiver_amount
+			self.new_loan_amount += (flt(self.interest_overdue) + flt(self.unaccrued_interest)) - flt(
+				self.interest_waiver_amount
+			)
 		if self.treatment_of_penal_interest == "Capitalize":
-			self.new_loan_amount += self.charges_overdue - self.other_charges_waiver
+			self.new_loan_amount += flt(self.charges_overdue) - flt(self.other_charges_waiver)
 
 		if self.treatment_of_other_charges == "Capitalize":
-			self.new_loan_amount += self.penalty_overdue - self.penal_interest_waiver
+			self.new_loan_amount += flt(self.penalty_overdue) - flt(self.penal_interest_waiver)
 
 	def update_restructured_loan_details(self):
 		if not self.new_rate_of_interest:
