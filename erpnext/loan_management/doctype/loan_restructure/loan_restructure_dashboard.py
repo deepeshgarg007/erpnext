@@ -1,7 +1,10 @@
 def get_data():
 	return {
-		"fieldname": "reference_name",
+		"fieldname": "loan_restructure",
+		"non_standard_fieldnames": {
+			"Loan Balance Adjustment": "reference_name",
+		},
 		"transactions": [
-			{"items": ["Loan Balance Adjustment"]},
+			{"items": ["Loan Balance Adjustment", "Loan Repayment Schedule"]},
 		],
 	}

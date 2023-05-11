@@ -98,7 +98,13 @@ class LoanRepaymentSchedule(Document):
 				frappe.throw(_("Monthly Repayment Amount cannot be greater than Loan Amount"))
 
 	def get_amounts(
-		self, payment_date, balance_amount, schedule_type, repayment_date_on, additional_days
+		self,
+		payment_date,
+		balance_amount,
+		schedule_type,
+		repayment_date_on,
+		additional_days,
+		carry_forward_interest=0,
 	):
 		if schedule_type == "Monthly as per repayment start date":
 			days = 1

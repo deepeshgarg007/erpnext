@@ -18,29 +18,30 @@
   "company",
   "restructure_date",
   "reason_for_restructure",
-  "current_restructure_count",
   "loan_details_section",
   "loan_type",
+  "old_tenure",
   "old_rate_of_interest",
   "disbursed_amount",
-  "unaccrued_interest",
-  "pending_principal_amount",
+  "old_emi",
+  "current_restructure_count",
   "pre_restructure_dpd",
   "column_break_dbdn",
+  "pending_principal_amount",
   "total_overdue_amount",
   "principal_overdue",
   "interest_overdue",
+  "unaccrued_interest",
   "penalty_overdue",
   "charges_overdue",
   "loan_waiver_details_section",
   "interest_waiver_amount",
-  "capitalize_penal_interest",
-  "capitalize_other_charges",
-  "column_break_a6aq",
   "penal_interest_waiver",
   "other_charges_waiver",
-  "carry_forward_penalty_interest",
-  "carry_forward_pending_charges",
+  "column_break_a6aq",
+  "treatment_of_normal_interest",
+  "treatment_of_penal_interest",
+  "treatment_of_other_charges",
   "loan_restructure_details_section",
   "new_rate_of_interest",
   "repayment_start_date",
@@ -49,8 +50,6 @@
   "new_repayment_period_in_months",
   "new_monthly_repayment_amount",
   "new_loan_amount",
-  "new_repayment_schedule_section",
-  "repayment_schedule",
   "amended_from"
  ],
  "fields": [
@@ -66,6 +65,7 @@
    "fetch_from": "loan.applicant_type",
    "fieldname": "applicant_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Applicant Type",
    "options": "Employee\nMember\nCustomer",
    "read_only": 1
@@ -102,7 +102,7 @@
   {
    "fieldname": "loan_details_section",
    "fieldtype": "Section Break",
-   "label": "Loan Details"
+   "label": "Pre Restructure Details"
   },
   {
    "fetch_from": "loan.disbursed_amount",
@@ -147,17 +147,6 @@
    "fieldname": "new_rate_of_interest",
    "fieldtype": "Percent",
    "label": "New Rate Of Interest"
-  },
-  {
-   "fieldname": "new_repayment_schedule_section",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "repayment_schedule",
-   "fieldtype": "Table",
-   "label": "Repayment Schedule",
-   "options": "Repayment Schedule",
-   "read_only": 1
   },
   {
    "fieldname": "column_break_mqcp",
@@ -220,12 +209,6 @@
    "reqd": 1
   },
   {
-   "default": "0",
-   "fieldname": "carry_forward_pending_charges",
-   "fieldtype": "Check",
-   "label": "Carry Forward Pending Charges"
-  },
-  {
    "fieldname": "new_loan_amount",
    "fieldtype": "Currency",
    "label": "New Loan Amount",
@@ -235,7 +218,8 @@
    "fetch_from": "loan.days_past_due",
    "fieldname": "pre_restructure_dpd",
    "fieldtype": "Int",
-   "label": "Pre Restructure DPD"
+   "label": "Pre Restructure DPD",
+   "read_only": 1
   },
   {
    "fieldname": "repayment_start_date",
@@ -277,48 +261,34 @@
    "options": "Normal Restructure\nPre Payment"
   },
   {
-   "default": "0",
-   "fieldname": "carry_forward_penalty_interest",
-   "fieldtype": "Check",
-   "label": "Carry Forward Penalty Interest"
-  },
-  {
-   "default": "0",
-   "fieldname": "capitalize_penal_interest",
-   "fieldtype": "Check",
-   "label": "Capitalize Penal Interest"
-  },
-  {
-   "default": "0",
-   "fieldname": "capitalize_other_charges",
-   "fieldtype": "Check",
-   "label": "Capitalize Other Charges"
-  },
-  {
    "fetch_from": "loan.branch",
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
-   "options": "Branch"
+   "options": "Branch",
+   "read_only": 1
   },
   {
    "fieldname": "penalty_overdue",
    "fieldtype": "Currency",
    "label": "Penalty Overdue",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "read_only": 1
   },
   {
    "fetch_from": "loan.repayment_method",
    "fieldname": "repayment_method",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Repayment Method"
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.docstatus == 1",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Initiated\nApproved\nRejected"
+   "options": "\nInitiated\nApproved\nRejected"
   },
   {
    "fieldname": "current_restructure_count",
@@ -330,13 +300,46 @@
    "fieldname": "unaccrued_interest",
    "fieldtype": "Currency",
    "label": "Unaccrued Interest",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "loan.repayment_periods",
+   "fieldname": "old_tenure",
+   "fieldtype": "Int",
+   "label": "Old Tenure",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "loan.monthly_repayment_amount",
+   "fieldname": "old_emi",
+   "fieldtype": "Currency",
+   "label": "Old EMI",
+   "read_only": 1
+  },
+  {
+   "fieldname": "treatment_of_penal_interest",
+   "fieldtype": "Select",
+   "label": "Treatment Of Penal Interest",
+   "options": "\nCapitalize\nCarry Forward"
+  },
+  {
+   "fieldname": "treatment_of_other_charges",
+   "fieldtype": "Select",
+   "label": "Treatment Of Other Charges",
+   "options": "\nCapitalize\nCarry Forward"
+  },
+  {
+   "fieldname": "treatment_of_normal_interest",
+   "fieldtype": "Select",
+   "label": "Treatment of Normal Interest",
+   "options": "\nCapitalize\nAdd In First EMI"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-09 13:07:51.844940",
+ "modified": "2023-05-11 14:46:25.366011",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

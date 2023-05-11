@@ -265,7 +265,7 @@ def get_term_loans(date, term_loan=None, loan_type=None):
 			(loan.docstatus == 1)
 			& (loan.status == "Disbursed")
 			& (loan.is_term_loan == 1)
-			& (loan_schedule.status != "Restructured")
+			& (loan_schedule.status == "Disbursed")
 			& (loan_repayment_schedule.principal_amount > 0)
 			& (loan_repayment_schedule.payment_date <= date)
 			& (loan_repayment_schedule.is_accrued == 0)

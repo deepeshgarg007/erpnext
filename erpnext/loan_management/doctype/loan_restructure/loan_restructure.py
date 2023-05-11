@@ -3,12 +3,11 @@
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, add_months, date_diff, flt, get_last_day, getdate
+from frappe.utils import flt, getdate
 
 from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.loan_management.doctype.loan_repayment.loan_repayment import get_amounts
 from erpnext.loan_management.doctype.loan_repayment_schedule.loan_repayment_schedule import (
-	add_single_month,
 	get_monthly_repayment_amount,
 )
 
@@ -17,12 +16,11 @@ class LoanRestructure(AccountsController):
 	def validate(self):
 		self.update_overdue_amounts()
 		self.validate_waiver_amount()
-		self.validate_capitalization_carry_forward()
 		self.calculate_new_loan_amount()
 		self.validate_branch_limit()
 		self.validate_new_loan_amount()
 		self.update_restructured_loan_details()
-		self.make_repayment_schedule()
+		self.make_update_draft_loan_repayment_schedule()
 
 	def set_status(self, status=None):
 		if self.docstatus == 1 and not status:
@@ -33,12 +31,17 @@ class LoanRestructure(AccountsController):
 	def on_update_after_submit(self):
 		if self.status == "Approved":
 			self.restructure_loan()
+			self.update_repayment_schedule_status(status="Disbursed")
 			self.make_loan_adjustment_for_waiver()
+			# self.make_interest_waiver()
 			self.make_loan_adjustment_for_capitalization()
 			self.mark_loan_as_npa()
 			self.update_totals()
 			self.update_branch_limit()
 			self.update_restructure_count()
+		elif self.status == "Rejected":
+			self.update_repayment_schedule_status(status="Rejected")
+			# self.update_branch_limit(cancel=1)
 
 	def update_branch_limit(self, cancel=1):
 		if self.branch:
@@ -87,8 +90,23 @@ class LoanRestructure(AccountsController):
 			"Loan", self.loan, "loan_restructure_count", self.current_restructure_count + increment_count
 		)
 
+	def update_repayment_schedule_status(self, status):
+		if status == "Initiated":
+			draft_schedule = frappe.db.get_value(
+				"Loan Repayment Schedule", {"loan_restructure": self.name, "docstatus": 0}, "name"
+			)
+			schedule = frappe.get_doc("Loan Repayment Schedule", draft_schedule)
+			schedule.status = "Initiated"
+			schedule.save()
+			schedule.submit()
+		else:
+			frappe.db.set_value(
+				"Loan Repayment Schedule", {"loan_restructure": self.name}, "status", status
+			)
+
 	def on_submit(self):
 		self.set_status()
+		self.update_repayment_schedule_status(status="Initiated")
 		self.update_branch_limit()
 
 	def on_cancel(self):
@@ -141,25 +159,17 @@ class LoanRestructure(AccountsController):
 		if flt(self.other_charges_waiver) > flt(self.charges_overdue):
 			frappe.throw(_("Other Charges Waiver cannot be greater than overdue charges"))
 
-	def validate_capitalization_carry_forward(self):
-		if self.capitalize_penal_interest & self.carry_forward_penalty_interest:
-			frappe.throw(_("Penal Interest can either be carry forwarded or capitalized"))
-
-		if self.capitalize_other_charges & self.carry_forward_pending_charges:
-			frappe.throw(_("Penal Interest can either be carry forwarded or capitalized"))
-
 	def calculate_new_loan_amount(self):
-		self.new_loan_amount = (
-			self.pending_principal_amount
-			+ self.interest_overdue
-			+ self.unaccrued_interest
-			- self.interest_waiver_amount
-		)
+		self.new_loan_amount = self.pending_principal_amount
 
-		if self.capitalize_other_charges:
+		if self.treatment_of_normal_interest == "Capitalize":
+			self.new_loan_amount += (
+				self.interest_overdue + self.unaccrued_interest
+			) + self.interest_waiver_amount
+		if self.treatment_of_penal_interest == "Capitalize":
 			self.new_loan_amount += self.charges_overdue - self.other_charges_waiver
 
-		if self.capitalize_penal_interest:
+		if self.treatment_of_other_charges == "Capitalize":
 			self.new_loan_amount += self.penalty_overdue - self.penal_interest_waiver
 
 	def update_restructured_loan_details(self):
@@ -183,109 +193,6 @@ class LoanRestructure(AccountsController):
 		if self.new_loan_amount > self.disbursed_amount:
 			frappe.throw(frappe._("New Loan Amount cannot be greater than original disbursed amount"))
 
-	def make_repayment_schedule(self):
-		if not self.repayment_start_date:
-			self.repayment_start_date = self.restructure_date
-
-		schedule_type_details = frappe.db.get_value(
-			"Loan Type", self.loan_type, ["repayment_schedule_type", "repayment_date_on"], as_dict=1
-		)
-
-		self.repayment_schedule = []
-		payment_date = self.repayment_start_date
-		balance_amount = self.new_loan_amount
-
-		while balance_amount > 0:
-			(
-				interest_amount,
-				principal_amount,
-				balance_amount,
-				total_payment,
-				days,
-			) = self.get_schedule_amounts(
-				payment_date,
-				balance_amount,
-				schedule_type_details.repayment_schedule_type,
-				schedule_type_details.repayment_date_on,
-			)
-
-			if schedule_type_details.repayment_schedule_type == "Pro-rated calendar months":
-				next_payment_date = get_last_day(payment_date)
-				if schedule_type_details.repayment_date_on == "Start of the next month":
-					next_payment_date = add_days(next_payment_date, 1)
-
-				payment_date = next_payment_date
-
-			self.add_repayment_schedule_row(
-				payment_date, principal_amount, interest_amount, total_payment, balance_amount, days
-			)
-
-			if (
-				self.repayment_method == "Repay Over Number of Periods"
-				and len(self.get("repayment_schedule")) >= self.new_repayment_period_in_months
-			):
-				self.get("repayment_schedule")[-1].principal_amount += balance_amount
-				self.get("repayment_schedule")[-1].balance_loan_amount = 0
-				self.get("repayment_schedule")[-1].total_payment = (
-					self.get("repayment_schedule")[-1].interest_amount
-					+ self.get("repayment_schedule")[-1].principal_amount
-				)
-				balance_amount = 0
-
-			if (
-				schedule_type_details.repayment_schedule_type
-				in ["Monthly as per repayment start date", "Monthly as per cycle date"]
-				or schedule_type_details.repayment_date_on == "End of the current month"
-			):
-				next_payment_date = add_single_month(payment_date)
-				payment_date = next_payment_date
-
-	def get_schedule_amounts(self, payment_date, balance_amount, schedule_type, repayment_date_on):
-		if schedule_type == "Monthly as per repayment start date":
-			days = 1
-			months = 12
-		else:
-			expected_payment_date = get_last_day(payment_date)
-			if repayment_date_on == "Start of the next month":
-				expected_payment_date = add_days(expected_payment_date, 1)
-
-			if schedule_type == "Monthly as per cycle date":
-				days = date_diff(add_months(payment_date, 1), payment_date)
-				months = 365
-			elif expected_payment_date == payment_date:
-				# using 30 days for calculating interest for all full months
-				days = 30
-				months = 365
-			else:
-				days = date_diff(get_last_day(payment_date), payment_date)
-				months = 365
-
-		interest_amount = flt(balance_amount * flt(self.new_rate_of_interest) * days / (months * 100))
-		principal_amount = self.new_monthly_repayment_amount - interest_amount
-		balance_amount = flt(balance_amount + interest_amount - self.new_monthly_repayment_amount)
-		if balance_amount < 0:
-			principal_amount += balance_amount
-			balance_amount = 0.0
-
-		total_payment = principal_amount + interest_amount
-
-		return interest_amount, principal_amount, balance_amount, total_payment, days
-
-	def add_repayment_schedule_row(
-		self, payment_date, principal_amount, interest_amount, total_payment, balance_loan_amount, days
-	):
-		self.append(
-			"repayment_schedule",
-			{
-				"number_of_days": days,
-				"payment_date": payment_date,
-				"principal_amount": principal_amount,
-				"interest_amount": interest_amount,
-				"total_payment": total_payment,
-				"balance_loan_amount": balance_loan_amount,
-			},
-		)
-
 	def mark_loan_as_npa(self):
 		frappe.db.set_value("Loan", self.loan, "is_npa", 1)
 
@@ -301,21 +208,37 @@ class LoanRestructure(AccountsController):
 			"Restructured",
 		)
 
-		self.make_repayment_new_loan_repayment_schedule()
-
-	def make_repayment_new_loan_repayment_schedule(self):
-		schedule = frappe.new_doc("Loan Repayment Schedule")
-		schedule.loan = self.loan
-		schedule.repayment_method = self.new_repayment_method
-		schedule.repayment_start_date = self.repayment_start_date
-		schedule.repayment_periods = self.new_repayment_period_in_months
-		schedule.loan_amount = self.new_loan_amount
-		schedule.loan_type = self.loan_type
-		schedule.rate_of_interest = self.new_rate_of_interest
-		schedule.posting_date = self.restructure_date
-		schedule.insert()
-
-		schedule.submit()
+	def make_update_draft_loan_repayment_schedule(self):
+		draft_schedule = frappe.db.get_value(
+			"Loan Repayment Schedule", {"loan_restructure": self.name, "docstatus": 0}, "name"
+		)
+		if draft_schedule:
+			schedule = frappe.get_doc("Loan Repayment Schedule", draft_schedule)
+			schedule.update(
+				{
+					"loan": self.name,
+					"repayment_periods": self.new_repayment_period_in_months,
+					"repayment_method": self.new_repayment_method,
+					"repayment_start_date": self.repayment_start_date,
+					"posting_date": self.restructure_date,
+					"loan_amount": self.new_loan_amount,
+					"loan_type": self.loan_type,
+					"rate_of_interest": self.new_rate_of_interest,
+				}
+			)
+			schedule.save()
+		else:
+			schedule = frappe.new_doc("Loan Repayment Schedule")
+			schedule.loan = self.loan
+			schedule.loan_restructure = self.name
+			schedule.repayment_method = self.new_repayment_method
+			schedule.repayment_start_date = self.repayment_start_date
+			schedule.repayment_periods = self.new_repayment_period_in_months
+			schedule.loan_amount = self.new_loan_amount
+			schedule.loan_type = self.loan_type
+			schedule.rate_of_interest = self.new_rate_of_interest
+			schedule.posting_date = self.restructure_date
+			schedule.insert()
 
 	def update_totals(self):
 		total_payment = 0
@@ -368,6 +291,27 @@ class LoanRestructure(AccountsController):
 			reference_doctype="Loan Restructure",
 		)
 
+	def make_interest_waiver(self):
+		if self.interest_waiver_amount:
+			interest_waived = self.interest_waived
+
+			lia = frappe.qb.DocType("Loan Interest Accrual")
+			accruals = (
+				frappe.qb.from_(lia)
+				.select(lia.name, lia.interest_amount, lia.paid_interest_amount)
+				.where(lia.interest_amount - lia.paid_interest_amount > 0)
+				.orderby(lia.due_date)
+				.run(as_dict=1)
+			)
+
+			for accrual in accruals:
+				if interest_waived > 0:
+					if interest_waived > (accrual.interest_amount - accrual.paid_interest_amount):
+						interest_waived -= accrual.interest_amount - accrual.paid_interest_amount
+						frappe.db.set_value(
+							"Loan Interest Accrual", accrual.name, "paid_interest_amount", accrual.interest_amount
+						)
+
 	def cancel_loan_adjustments(self):
 		for d in frappe.get_all(
 			"Loan Balance Adjustment",
@@ -377,7 +321,7 @@ class LoanRestructure(AccountsController):
 			doc.cancel()
 
 	def make_loan_adjustment_for_capitalization(self):
-		if self.capitalize_penal_interest:
+		if self.treatment_of_penal_interest == "Capitalize":
 			penalty_capitalization_account = frappe.db.get_value(
 				"Loan Type", self.loan_type, "penalty_receivable_account"
 			)
@@ -391,7 +335,7 @@ class LoanRestructure(AccountsController):
 				reference_doctype="Loan Restructure",
 			)
 
-		if self.capitalize_other_charges:
+		if self.treatment_of_other_charges == "Capitalize":
 			other_charges_capitalization_account = frappe.db.get_value(
 				"Loan Type", self.loan_type, "charges_receivable_account"
 			)
@@ -442,29 +386,14 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 			if not limit:
 				limit = frappe.db.get_value("Company", company)
 
-			outstanding_pos = flt(
-				frappe.db.get_value(
-					"Loan",
-					{"branch": branch, "docstatus": 1, "status": "Disbursed", "company": company},
-					["sum(total_payment) - sum(total_principal_paid) - sum(total_interest_payable)"],
-				)
-			)
+			outstanding_pos = get_outstanding_pos(branch, company)
+			delinquent_pos = get_outstanding_pos(branch, company, delinquent=1)
 
-			utilized_limit = flt(
-				frappe.db.get_value(
-					"Loan Restructure",
-					{"branch": branch, "docstatus": 1, "company": "company", "status": "Approved"},
-					["sum(pending_principal_amount)"],
-				)
-			)
+			utilized_limit = get_utilized_limit(branch, company)
+			delinquent_utilized_limit = get_utilized_limit(branch, company, delinquent=1)
 
-			in_process_amount = flt(
-				frappe.db.get_value(
-					"Loan Restructure",
-					{"branch": branch, "docstatus": 0, "company": "company", "status": "Initiated"},
-					["sum(pending_principal_amount)"],
-				)
-			)
+			in_process_amount = get_in_process_limit(branch, company)
+			delinquent_in_process_limit = get_in_process_limit(branch, company, delinquent=1)
 
 			limit_amount = outstanding_pos * flt(limit) / 100
 
@@ -482,3 +411,48 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 					"available_limit": limit_amount - utilized_limit - in_process_amount,
 				}
 			).insert()
+
+
+def get_outstanding_pos(branch, company, delinquent=0):
+	filters = {"branch": branch, "docstatus": 1, "status": "Disbursed", "company": company}
+
+	if delinquent:
+		filters.update({"days_past_due": (">=", 1)})
+
+	pos = frappe.db.get_value(
+		"Loan",
+		filters,
+		["sum(total_payment) - sum(total_principal_paid) - sum(total_interest_payable)"],
+	)
+
+	return flt(pos)
+
+
+def get_utilized_limit(branch, company, delinquent=0):
+	filters = {"branch": branch, "docstatus": 1, "company": company, "status": "Approved"}
+
+	if delinquent:
+		filters.update({"pre_restructure_dpd": (">=", 1)})
+
+	utilized_limit = frappe.db.get_value(
+		"Loan Restructure",
+		filters,
+		["sum(pending_principal_amount)"],
+	)
+
+	return flt(utilized_limit)
+
+
+def get_in_process_limit(branch, company, delinquent=0):
+	filters = {"branch": branch, "docstatus": 0, "company": company, "status": "Initiated"}
+
+	if delinquent:
+		filters.update({"pre_restructure_dpd": (">=", 1)})
+
+	in_process_limit = frappe.db.get_value(
+		"Loan Restructure",
+		filters,
+		["sum(pending_principal_amount)"],
+	)
+
+	return flt(in_process_limit)
