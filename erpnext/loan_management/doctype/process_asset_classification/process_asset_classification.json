@@ -10,7 +10,6 @@
   "posting_date",
   "loan_type",
   "loan",
-  "event_type",
   "amended_from"
  ],
  "fields": [
@@ -41,18 +40,12 @@
    "options": "Process Asset Classification",
    "print_hide": 1,
    "read_only": 1
-  },
-  {
-   "fieldname": "event_type",
-   "fieldtype": "Select",
-   "label": "Event Type",
-   "options": "\nScheduled Job\nRepayment\nRepayment Cancel"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-10 18:47:00.490056",
+ "modified": "2023-05-11 11:05:49.688370",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Process Asset Classification",

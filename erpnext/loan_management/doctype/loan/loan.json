@@ -426,6 +426,7 @@
    "fieldname": "asset_classification_code",
    "fieldtype": "Select",
    "label": "Asset Classification Code",
+   "no_copy": 1,
    "options": "\nSMA-0\nSMA-1\nSMA-2\nD1\nD2\nD3",
    "read_only": 1
   },
@@ -433,6 +434,7 @@
    "fieldname": "asset_classification_name",
    "fieldtype": "Select",
    "label": "Asset Classification Name",
+   "no_copy": 1,
    "options": "\nSpecial Mention Account - 0\nSpecial Mention Account - 1\nSpecial Mention Account - 2\nSubstandard Asset\nDoubtful Asset\nLoss Asset",
    "read_only": 1
   },
@@ -452,7 +454,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-10 17:59:14.705016",
+ "modified": "2023-05-11 11:47:39.326965",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

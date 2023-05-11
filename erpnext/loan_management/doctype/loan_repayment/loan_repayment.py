@@ -9,6 +9,7 @@ from frappe.utils import add_days, cint, date_diff, flt, get_datetime, getdate
 import erpnext
 from erpnext.accounts.general_ledger import make_gl_entries
 from erpnext.controllers.accounts_controller import AccountsController
+from erpnext.loan_management.doctype.loan.loan import update_all_linked_loan_customer_npa_status
 from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
 	get_last_accrual_date,
 	get_per_day_interest,
@@ -40,10 +41,7 @@ class LoanRepayment(AccountsController):
 		# self.update_repayment_schedule()
 		self.make_gl_entries()
 		create_process_asset_classification(
-			posting_date=self.posting_date,
-			loan_type=self.loan_type,
-			loan=self.against_loan,
-			event_type="Repayment",
+			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
 		)
 
 	def on_cancel(self):
@@ -52,12 +50,9 @@ class LoanRepayment(AccountsController):
 		self.mark_as_unpaid()
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 		self.make_gl_entries(cancel=1)
-		create_process_asset_classification(
-			posting_date=self.posting_date,
-			loan_type=self.loan_type,
-			loan=self.against_loan,
-			event_type="Repayment Cancel",
-		)
+		if self.is_npa:
+			# Mark back all loans as NPA
+			update_all_linked_loan_customer_npa_status(self.is_npa, self.applicant_type, self.applicant)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -322,7 +317,12 @@ class LoanRepayment(AccountsController):
 			offset_base_on = frappe.db.get_value(
 				"Company",
 				self.company,
-				["collection_offset_logic_based_on", "days_past_due_threshold"],
+				[
+					"collection_offset_logic_based_on",
+					"days_past_due_threshold",
+					"collection_offset_sequence_for_standard_asset",
+					"collection_offset_sequence_for_sub_standard_asset",
+				],
 				as_dict=1,
 			)
 
@@ -330,9 +330,17 @@ class LoanRepayment(AccountsController):
 				offset_base_on.collection_offset_logic_based_on == "Days Past Due"
 				and self.days_past_due > cint(offset_base_on.days_past_due_threshold)
 			):
-				self.allocate_as_per_npa(interest_paid, repayment_details)
+				if offset_base_on.collection_offset_sequence_for_sub_standard_asset == "PPP...III...CCC":
+					self.allocate_as_per_npa(interest_paid, repayment_details)
+				else:
+					self.allocate_as_per_non_npa(interest_paid, repayment_details)
 			else:
-				self.allocate_as_per_non_npa(interest_paid, repayment_details)
+				if (
+					offset_base_on.collection_offset_sequence_for_standard_asset == "IP...IP...IP...Penal...CCC"
+				):
+					self.allocate_as_per_non_npa(interest_paid, repayment_details)
+				else:
+					self.allocate_as_per_npa(interest_paid, repayment_details)
 
 	def allocate_as_per_non_npa(self, interest_paid, repayment_details):
 		self.total_interest_paid = 0
@@ -504,6 +512,7 @@ class LoanRepayment(AccountsController):
 				"suspense_interest_receivable",
 				"suspense_interest_income",
 				"penalty_receivable_account",
+				"interest_income_account",
 			],
 			as_dict=1,
 		)
@@ -591,7 +600,6 @@ class LoanRepayment(AccountsController):
 								"debit_in_account_currency": repayment.paid_interest_amount,
 								"against_voucher_type": "Loan",
 								"against_voucher": self.against_loan,
-								"remarks": _(remarks),
 								"cost_center": self.cost_center,
 								"posting_date": getdate(self.posting_date),
 							}
@@ -609,9 +617,32 @@ class LoanRepayment(AccountsController):
 								"credit_in_account_currency": repayment.paid_interest_amount,
 								"against_voucher_type": "Loan",
 								"against_voucher": self.against_loan,
-								"remarks": _(remarks),
 								"cost_center": self.cost_center,
 								"posting_date": getdate(self.posting_date),
+							}
+						)
+					)
+
+					gle_map.append(
+						self.get_gl_dict(
+							{
+								"account": account_details.interest_income_account,
+								"credit_in_account_currency": repayment.paid_interest_amount,
+								"credit": repayment.paid_interest_amount,
+								"cost_center": self.cost_center,
+								"against": account_details.suspense_interest_income,
+							}
+						)
+					)
+
+					gle_map.append(
+						self.get_gl_dict(
+							{
+								"account": account_details.suspense_interest_income,
+								"debit": repayment.paid_interest_amount,
+								"debit_in_account_currency": repayment.paid_interest_amount,
+								"cost_center": self.cost_center,
+								"against": account_details.interest_income_account,
 							}
 						)
 					)

@@ -96,9 +96,11 @@
   "loan_asset_classification_settings_section",
   "loan_restructure_limit",
   "delinquent_limit",
+  "collection_offset_sequence_for_standard_asset",
   "column_break_4a9y",
   "collection_offset_logic_based_on",
   "days_past_due_threshold",
+  "collection_offset_sequence_for_sub_standard_asset",
   "section_break_m9wy",
   "asset_classification_ranges",
   "registration_details",
@@ -743,6 +745,18 @@
   {
    "fieldname": "section_break_m9wy",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "collection_offset_sequence_for_standard_asset",
+   "fieldtype": "Select",
+   "label": "Collection Offset Sequence for Standard Asset",
+   "options": "IP...IP...IP...Penal...CCC\nPPP...III...CCC"
+  },
+  {
+   "fieldname": "collection_offset_sequence_for_sub_standard_asset",
+   "fieldtype": "Select",
+   "label": "Collection Offset Sequence for Sub Standard Asset",
+   "options": "IP...IP...IP...Penal...CCC\nPPP...III...CCC"
   }
  ],
  "icon": "fa fa-building",
@@ -750,7 +764,7 @@
  "image_field": "company_logo",
  "is_tree": 1,
  "links": [],
- "modified": "2023-05-10 10:56:48.882267",
+ "modified": "2023-05-11 11:26:08.358539",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",

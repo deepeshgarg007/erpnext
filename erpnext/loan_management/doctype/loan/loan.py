@@ -12,7 +12,6 @@ from frappe.utils import date_diff, flt, getdate, now_datetime, nowdate
 import erpnext
 from erpnext.accounts.doctype.journal_entry.journal_entry import get_payment_entry
 from erpnext.controllers.accounts_controller import AccountsController
-from erpnext.loan_management.doctype.loan_repayment.loan_repayment import calculate_amounts
 from erpnext.loan_management.doctype.loan_security_unpledge.loan_security_unpledge import (
 	get_pledged_security_qty,
 )
@@ -276,6 +275,8 @@ def get_sanctioned_amount_limit(applicant_type, applicant, company):
 
 @frappe.whitelist()
 def request_loan_closure(loan, posting_date=None):
+	from erpnext.loan_management.doctype.loan_repayment.loan_repayment import calculate_amounts
+
 	if not posting_date:
 		posting_date = getdate()
 
@@ -363,6 +364,8 @@ def make_repayment_entry(loan, applicant_type, applicant, loan_type, company, as
 
 @frappe.whitelist()
 def make_loan_write_off(loan, company=None, posting_date=None, amount=0, as_dict=0):
+	from erpnext.loan_management.doctype.loan_repayment.loan_repayment import calculate_amounts
+
 	if not company:
 		company = frappe.get_value("Loan", loan, "company")
 
@@ -517,9 +520,7 @@ def make_refund_jv(loan, amount=0, reference_number=None, reference_date=None, s
 
 
 @frappe.whitelist()
-def update_days_past_due_in_loans(
-	posting_date=None, loan_type=None, loan_name=None, event_type=None
-):
+def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=None):
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
@@ -546,10 +547,9 @@ def update_days_past_due_in_loans(
 			days_past_due,
 			is_npa,
 			posting_date or getdate(),
-			event_type,
 		)
 
-		create_dpd_record(loan.loan, posting_date, days_past_due, event_type)
+		create_dpd_record(loan.loan, posting_date, days_past_due)
 		checked_loans.append(loan.loan)
 
 	open_loans_with_no_overdue = []
@@ -568,32 +568,27 @@ def update_days_past_due_in_loans(
 
 	for d in open_loans_with_no_overdue:
 		update_loan_and_customer_status(
-			d.name, d.company, d.applicant_type, d.applicant, 0, 0, posting_date or getdate(), event_type
+			d.name, d.company, d.applicant_type, d.applicant, 0, 0, posting_date or getdate()
 		)
 
-		create_dpd_record(d.name, posting_date, 0, event_type)
+		create_dpd_record(d.name, posting_date, 0)
 
 
-def create_dpd_record(loan, posting_date, days_past_due, event_type):
+def create_dpd_record(loan, posting_date, days_past_due):
 	frappe.get_doc(
 		{
 			"doctype": "Days Past Due Log",
 			"loan": loan,
 			"posting_date": posting_date,
 			"days_past_due": days_past_due,
-			"event_type": event_type,
 		}
 	).insert(ignore_permissions=True)
 
 
 def update_loan_and_customer_status(
-	loan, company, applicant_type, applicant, days_past_due, is_npa, posting_date, event_type
+	loan, company, applicant_type, applicant, days_past_due, is_npa, posting_date
 ):
 	asset_code, asset_name = get_asset_classification_code_and_name(days_past_due, company)
-	previous_npa = frappe.db.get_value("Loan", loan, "is_npa")
-
-	if is_npa and not previous_npa and event_type != "Repayment Cancel":
-		move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 
 	frappe.db.set_value(
 		"Loan",
@@ -606,15 +601,18 @@ def update_loan_and_customer_status(
 	)
 
 	if is_npa:
-		_loan = frappe.qb.DocType("Loan")
-		frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, _loan.is_npa).where(
-			(_loan.docstatus == 1)
-			& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
-			& (_loan.applicant_type == applicant_type)
-			& (_loan.applicant == applicant)
-		).run()
+		for loan in frappe.get_all(
+			"Loan",
+			{
+				"status": ("in", ["Disbursed", "Partially Disbursed"]),
+				"applicant_type": applicant_type,
+				"applicant": applicant,
+			},
+			pluck="name",
+		):
+			move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 
-		frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
+		update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -622,14 +620,20 @@ def update_loan_and_customer_status(
 
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
 		if max_dpd == 0:
-			frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
-			_loan = frappe.qb.DocType("Loan")
-			frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, is_npa).where(
-				(_loan.docstatus == 1)
-				& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
-				& (_loan.applicant_type == applicant_type)
-				& (_loan.applicant == applicant)
-			).run()
+			update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant)
+
+
+def update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant):
+	"""Update NPA status of all linked customers"""
+	_loan = frappe.qb.DocType("Loan")
+	frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, _loan.is_npa).where(
+		(_loan.docstatus == 1)
+		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
+		& (_loan.applicant_type == applicant_type)
+		& (_loan.applicant == applicant)
+	).run()
+
+	frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 
 
 def get_asset_classification_code_and_name(days_past_due, company):
@@ -701,6 +705,10 @@ def get_dpd_threshold_map():
 
 
 def move_unpaid_interest_to_suspense_ledger(loan, posting_date):
+	previous_npa = frappe.db.get_value("Loan", loan, "is_npa")
+	if previous_npa:
+		return
+
 	loan_doc = frappe.get_doc("Loan", loan)
 	account_details = frappe.get_value(
 		"Loan Type",
