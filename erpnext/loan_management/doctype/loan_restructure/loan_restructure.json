@@ -27,19 +27,36 @@
   "old_emi",
   "current_restructure_count",
   "pre_restructure_dpd",
-  "loan_amounts_section",
+  "principal_amount_details_section",
+  "total_overdue_amount",
+  "column_break_bnny",
+  "pending_principal_amount",
+  "available_security_deposit",
+  "section_break_tbpw",
+  "principal_overdue",
+  "column_break_m3kb",
+  "principal_adjusted",
+  "column_break_gtuc",
+  "balance_principal",
+  "section_break_suab",
   "interest_overdue",
   "penalty_overdue",
   "charges_overdue",
+  "column_break_jvss",
   "unaccrued_interest",
-  "principal_overdue",
-  "pending_principal_amount",
-  "total_overdue_amount",
   "column_break_16cq",
+  "adjusted_interest_amount",
+  "adjusted_penalty_interest",
+  "adjusted_other_charges",
+  "column_break_hkgd",
   "interest_waiver_amount",
   "penal_interest_waiver",
   "other_charges_waiver",
-  "column_break_a6aq",
+  "column_break_ujcs",
+  "balance_interest_amount",
+  "balance_penalty_amount",
+  "balance_charges",
+  "column_break_x8or",
   "treatment_of_normal_interest",
   "treatment_of_penal_interest",
   "treatment_of_other_charges",
@@ -154,10 +171,6 @@
    "fieldtype": "Currency",
    "label": "Interest Waiver Amount",
    "options": "Company:company:default_currency"
-  },
-  {
-   "fieldname": "column_break_a6aq",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "other_charges_waiver",
@@ -310,21 +323,24 @@
    "read_only": 1
   },
   {
+   "default": "Capitalize",
    "fieldname": "treatment_of_penal_interest",
    "fieldtype": "Select",
-   "label": "Treatment Of Penal Interest",
+   "label": "Penal Treatment",
    "options": "Capitalize\nCarry Forward"
   },
   {
+   "default": "Capitalize",
    "fieldname": "treatment_of_other_charges",
    "fieldtype": "Select",
-   "label": "Treatment Of Other Charges",
+   "label": "Charges Treatment",
    "options": "Capitalize\nCarry Forward"
   },
   {
+   "default": "Capitalize",
    "fieldname": "treatment_of_normal_interest",
    "fieldtype": "Select",
-   "label": "Treatment of Normal Interest",
+   "label": "Interest Treatment",
    "options": "Capitalize\nCarry Forward"
   },
   {
@@ -332,19 +348,113 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "loan_amounts_section",
-   "fieldtype": "Section Break",
-   "label": "Loan Amounts"
-  },
-  {
    "fieldname": "column_break_gl0p",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "principal_amount_details_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Amount Details"
+  },
+  {
+   "fieldname": "column_break_bnny",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "adjusted_interest_amount",
+   "fieldtype": "Currency",
+   "label": "Adjusted Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "adjusted_penalty_interest",
+   "fieldtype": "Currency",
+   "label": "Adjusted Penalty",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "adjusted_other_charges",
+   "fieldtype": "Currency",
+   "label": "Adjusted Other Charges",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_hkgd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_tbpw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "balance_interest_amount",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ujcs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "balance_charges",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_x8or",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_jvss",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "available_security_deposit",
+   "fieldtype": "Currency",
+   "label": "Available Security Deposit",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "section_break_suab",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_m3kb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "principal_adjusted",
+   "fieldtype": "Currency",
+   "label": "Principal Adjusted",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_gtuc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance_principal",
+   "fieldtype": "Currency",
+   "label": "Balance Overdue Principal",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-11 17:49:38.930030",
+ "modified": "2023-05-12 12:55:12.413053",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

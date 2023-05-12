@@ -16,11 +16,14 @@ class LoanRestructure(AccountsController):
 	def validate(self):
 		self.update_overdue_amounts()
 		self.validate_waiver_amount()
+		self.allocate_security_deposit()
+		self.calculate_balance_amounts()
 		self.calculate_new_loan_amount()
 		self.validate_branch_limit()
 		self.validate_new_loan_amount()
+
 		self.update_restructured_loan_details()
-		if self.docstatus == 1:
+		if not self.is_new():
 			self.make_update_draft_loan_repayment_schedule()
 
 	def after_insert(self):
@@ -32,15 +35,80 @@ class LoanRestructure(AccountsController):
 		else:
 			self.db_set("status", status)
 
+	def allocate_security_deposit(self):
+		deposit_amount = self.available_security_deposit
+		self.principal_adjusted = 0
+		self.adjusted_interest_amount = 0
+		self.adjusted_other_charges = 0
+
+		if deposit_amount > 0:
+			# Adjust Principal
+			deposit_amount = self.adjust_component(
+				deposit_amount, "principal_overdue", "principal_adjusted"
+			)
+
+		if deposit_amount > 0:
+			# Adjust Interest
+			deposit_amount = self.adjust_component(
+				deposit_amount, "interest_overdue", "adjusted_interest_amount"
+			)
+
+		if deposit_amount > 0:
+			# Adjust Unaccrued Interest
+			deposit_amount = self.adjust_component(
+				deposit_amount, "unaccrued_interest", "adjusted_interest_amount"
+			)
+
+		if deposit_amount > 0:
+			# Adjust Penalty
+			deposit_amount = self.adjust_component(
+				deposit_amount, "penalty_overdue", "adjusted_penalty_amount"
+			)
+
+	def calculate_balance_amounts(self):
+		self.balance_principal = flt(self.principal_overdue) - flt(self.principal_adjusted)
+		self.balance_interest_amount = (
+			flt(self.interest_overdue)
+			+ flt(self.unaccrued_interest)
+			- flt(self.adjusted_interest_amount)
+			- flt(self.interest_waiver_amount)
+		)
+		self.balance_penalty_amount = flt(self.penalty_overdue) - flt(self.adjusted_penalty_interest)
+
+	def calculate_new_loan_amount(self):
+		self.new_loan_amount = flt(self.pending_principal_amount) - flt(self.principal_adjusted)
+
+		if self.treatment_of_normal_interest == "Capitalize":
+			self.new_loan_amount += flt(self.balance_interest_amount)
+
+		if self.treatment_of_penal_interest == "Capitalize":
+			self.new_loan_amount += flt(self.balance_penalty_amount)
+
+		if self.treatment_of_other_charges == "Capitalize":
+			self.new_loan_amount += flt(self.balance_charges)
+
+	def adjust_component(self, amount_to_adjust, component, update_field):
+		if amount_to_adjust > 0:
+			if amount_to_adjust >= self.get(component):
+				old_value = flt(self.get(update_field))
+				self.set(update_field, flt(self.get(component)) + old_value)
+				amount_to_adjust -= flt(self.get(component))
+			else:
+				old_value = flt(self.get(update_field))
+				self.set(update_field, amount_to_adjust + old_value)
+				amount_to_adjust = 0
+
+		return amount_to_adjust
+
 	def on_update_after_submit(self):
 		if self.status == "Approved":
 			self.restructure_loan()
-			self.update_repayment_schedule_status(status="Disbursed")
 			self.make_loan_adjustment_for_waiver()
 			# self.make_interest_waiver()
 			self.make_loan_adjustment_for_capitalization()
 			self.mark_loan_as_npa()
 			self.update_totals()
+			self.update_repayment_schedule_status(status="Disbursed")
 			self.update_branch_limit()
 			self.update_restructure_count()
 		elif self.status == "Rejected":
@@ -163,19 +231,6 @@ class LoanRestructure(AccountsController):
 		if flt(self.other_charges_waiver) > flt(self.charges_overdue):
 			frappe.throw(_("Other Charges Waiver cannot be greater than overdue charges"))
 
-	def calculate_new_loan_amount(self):
-		self.new_loan_amount = self.pending_principal_amount
-
-		if self.treatment_of_normal_interest == "Capitalize":
-			self.new_loan_amount += (flt(self.interest_overdue) + flt(self.unaccrued_interest)) - flt(
-				self.interest_waiver_amount
-			)
-		if self.treatment_of_penal_interest == "Capitalize":
-			self.new_loan_amount += flt(self.charges_overdue) - flt(self.other_charges_waiver)
-
-		if self.treatment_of_other_charges == "Capitalize":
-			self.new_loan_amount += flt(self.penalty_overdue) - flt(self.penal_interest_waiver)
-
 	def update_restructured_loan_details(self):
 		if not self.new_rate_of_interest:
 			self.new_rate_of_interest = self.old_rate_of_interest
@@ -207,7 +262,7 @@ class LoanRestructure(AccountsController):
 		# Mark Old Repayment Schedule as Restructured
 		frappe.db.set_value(
 			"Loan Repayment Schedule",
-			{"loan": self.loan, "status": ("!=", "Restructured")},
+			{"loan": self.loan, "status": ("!=", "Restructured"), "loan_restructure": ("!=", self.name)},
 			"status",
 			"Restructured",
 		)
@@ -220,7 +275,7 @@ class LoanRestructure(AccountsController):
 			schedule = frappe.get_doc("Loan Repayment Schedule", draft_schedule)
 			schedule.update(
 				{
-					"loan": self.name,
+					"loan": self.loan,
 					"repayment_periods": self.new_repayment_period_in_months,
 					"repayment_method": self.new_repayment_method,
 					"repayment_start_date": self.repayment_start_date,
@@ -249,7 +304,8 @@ class LoanRestructure(AccountsController):
 		total_interest_payable = 0
 
 		schedule = frappe.get_doc(
-			"Loan Repayment Schedule", {"loan": self.loan, "docstatus": 1, "status": "Disbursed"}
+			"Loan Repayment Schedule",
+			{"loan_restructure": self.name, "docstatus": 1, "status": "Initiated"},
 		)
 		for data in schedule.repayment_schedule:
 			total_payment += data.total_payment

@@ -38,7 +38,7 @@ class LoanRepaymentSchedule(Document):
 		self.repayment_schedule = []
 		payment_date = self.repayment_start_date
 		balance_amount = self.loan_amount
-		bmi_days = date_diff(add_months(payment_date, -1), self.posting_date)
+		bmi_days = date_diff(add_months(payment_date, -1), self.posting_date) + 1
 		additional_days = 0
 
 		if bmi_days > 0:
@@ -115,7 +115,7 @@ class LoanRepaymentSchedule(Document):
 				expected_payment_date = add_days(expected_payment_date, 1)
 
 			if schedule_type == "Monthly as per cycle date":
-				days = date_diff(add_months(payment_date, 1), payment_date)
+				days = date_diff(payment_date, add_months(payment_date, -1))
 				months = 365
 				if additional_days > 0:
 					days += additional_days
