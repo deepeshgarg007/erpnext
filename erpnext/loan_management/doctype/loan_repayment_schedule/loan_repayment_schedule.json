@@ -65,6 +65,7 @@
   },
   {
    "fetch_from": "loan.repayment_method",
+   "fetch_if_empty": 1,
    "fieldname": "repayment_method",
    "fieldtype": "Select",
    "label": "Repayment Method",
@@ -114,6 +115,7 @@
   },
   {
    "fetch_from": "loan.rate_of_interest",
+   "fetch_if_empty": 1,
    "fieldname": "rate_of_interest",
    "fieldtype": "Float",
    "label": "Rate Of Interest"
@@ -133,7 +135,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-11 15:37:59.879694",
+ "modified": "2023-05-14 21:18:37.950410",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment Schedule",

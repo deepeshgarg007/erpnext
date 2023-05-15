@@ -15,13 +15,7 @@ def get_data():
 					"Loan Disbursement",
 				]
 			},
-			{
-				"items": [
-					"Loan Repayment",
-					"Loan Interest Accrual",
-					"Loan Write Off",
-				]
-			},
+			{"items": ["Loan Repayment", "Loan Interest Accrual", "Loan Write Off", "Loan Restructure"]},
 			{"items": ["Loan Security Unpledge", "Days Past Due Log", "Journal Entry"]},
 		],
 	}

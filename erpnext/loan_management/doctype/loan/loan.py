@@ -63,6 +63,12 @@ class Loan(AccountsController):
 		self.cancel_and_delete_repayment_schedule()
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 
+	def on_update_after_submit(self):
+		update_manual_npa_check(self.manual_npa, self.applicant_type, self.applicant)
+		move_unpaid_interest_to_suspense_ledger(
+			applicant_type=self.applicant_type, applicant=self.applicant, reverse=not self.manual_npa
+		)
+
 	def set_missing_fields(self):
 		if not self.company:
 			self.company = erpnext.get_default_company()
@@ -88,6 +94,12 @@ class Loan(AccountsController):
 					self.applicant_type, frappe.bold(self.applicant)
 				)
 			)
+
+	# def on_update_after_submit(self):
+	# 	from erpnext.loan_management.doctype.process_asset_classification.process_asset_classification import (
+	# 		create_process_asset_classification,
+	# 	)
+	# 	create_process_asset_classification()
 
 	def make_update_draft_schedule(self):
 		draft_schedule = frappe.db.get_value(
@@ -526,7 +538,9 @@ def update_days_past_due_in_loans(posting_date=None, loan_type=None, loan_name=N
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
-	accruals = get_pending_loan_interest_accruals(loan_type, loan_name, filter_entries=False)
+	accruals = get_pending_loan_interest_accruals(
+		loan_type=loan_type, loan_name=loan_name, filter_entries=False
+	)
 	threshold_map = get_dpd_threshold_map()
 	checked_loans = []
 
@@ -614,7 +628,7 @@ def update_loan_and_customer_status(
 		):
 			move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 
-		update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant)
+		update_all_linked_loan_customer_npa_status(is_npa, is_npa, applicant_type, applicant)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -622,13 +636,18 @@ def update_loan_and_customer_status(
 
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
 		if max_dpd == 0:
-			update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant)
+			update_all_linked_loan_customer_npa_status(is_npa, is_npa, applicant_type, applicant)
 
 
-def update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant):
+def update_all_linked_loan_customer_npa_status(is_npa, manual_npa, applicant_type, applicant):
 	"""Update NPA status of all linked customers"""
+	update_system_npa_check(is_npa, applicant_type, applicant)
+	update_manual_npa_check(manual_npa, applicant_type, applicant)
+
+
+def update_system_npa_check(is_npa, applicant_type, applicant):
 	_loan = frappe.qb.DocType("Loan")
-	frappe.qb.update("Loan").set(_loan.is_npa, is_npa).set(_loan.manual_npa, _loan.is_npa).where(
+	frappe.qb.update(_loan).set(_loan.is_npa, is_npa).where(
 		(_loan.docstatus == 1)
 		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
 		& (_loan.applicant_type == applicant_type)
@@ -636,6 +655,18 @@ def update_all_linked_loan_customer_npa_status(is_npa, applicant_type, applicant
 	).run()
 
 	frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
+
+
+def update_manual_npa_check(manual_npa, applicant_type, applicant):
+	_loan = frappe.qb.DocType("Loan")
+	frappe.qb.update(_loan).set(_loan.manual_npa, manual_npa).where(
+		(_loan.docstatus == 1)
+		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
+		& (_loan.applicant_type == applicant_type)
+		& (_loan.applicant == applicant)
+	).run()
+
+	frappe.db.set_value("Customer", applicant, "is_npa", manual_npa)
 
 
 def get_asset_classification_code_and_name(days_past_due, company):
@@ -655,7 +686,9 @@ def get_asset_classification_code_and_name(days_past_due, company):
 	return asset_code, asset_name
 
 
-def get_pending_loan_interest_accruals(loan_type=None, loan_name=None, filter_entries=True):
+def get_pending_loan_interest_accruals(
+	loan_type=None, loan_name=None, applicant_type=None, applicant=None, filter_entries=True
+):
 	"""Get pending loan interest accruals"""
 	loan_interest_accrual = frappe.qb.DocType("Loan Interest Accrual")
 
@@ -664,6 +697,7 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None, filter_en
 		.select(
 			loan_interest_accrual.name,
 			loan_interest_accrual.loan,
+			loan_interest_accrual.loan_type,
 			loan_interest_accrual.company,
 			loan_interest_accrual.loan_type,
 			loan_interest_accrual.due_date,
@@ -691,6 +725,12 @@ def get_pending_loan_interest_accruals(loan_type=None, loan_name=None, filter_en
 	if loan_name:
 		query = query.where(loan_interest_accrual.loan == loan_name)
 
+	if applicant_type:
+		query = query.where(loan_interest_accrual.applicant_type == applicant_type)
+
+	if applicant:
+		query = query.where(loan_interest_accrual.applicant == applicant)
+
 	loans = query.run(as_dict=1)
 
 	if filter_entries:
@@ -706,56 +746,61 @@ def get_dpd_threshold_map():
 	)
 
 
-def move_unpaid_interest_to_suspense_ledger(loan, posting_date):
+def move_unpaid_interest_to_suspense_ledger(
+	loan=None, posting_date=None, applicant_type=None, applicant=None, reverse=0
+):
+	posting_date = posting_date or getdate()
 	previous_npa = frappe.db.get_value("Loan", loan, "is_npa")
 	if previous_npa:
 		return
 
-	loan_doc = frappe.get_doc("Loan", loan)
-	account_details = frappe.get_value(
-		"Loan Type",
-		loan_doc.loan_type,
-		[
-			"suspense_interest_receivable",
-			"suspense_interest_income",
-			"interest_receivable_account",
-			"interest_income_account",
-		],
-		as_dict=1,
-	)
-
 	pending_loan_interest_accruals = get_pending_loan_interest_accruals(
-		loan_type=loan_doc.loan_type, loan_name=loan
+		loan_name=loan, applicant_type=applicant_type, applicant=applicant, filter_entries=False
 	)
 
 	for accrual in pending_loan_interest_accruals:
 		amount = accrual.interest_amount - accrual.paid_interest_amount
+
+		if reverse:
+			amount = -1 * amount
+
+		account_details = frappe.get_value(
+			"Loan Type",
+			accrual.loan_type,
+			[
+				"suspense_interest_receivable",
+				"suspense_interest_income",
+				"interest_receivable_account",
+				"interest_income_account",
+			],
+			as_dict=1,
+		)
 		jv = frappe.get_doc(
 			{
 				"doctype": "Journal Entry",
 				"voucher_type": "Journal Entry",
 				"posting_date": posting_date,
-				"company": loan_doc.company,
+				"company": accrual.company,
 				"accounts": [
 					{
 						"account": account_details.suspense_interest_receivable,
-						"party": loan_doc.applicant,
-						"party_type": loan_doc.applicant_type,
+						"party": accrual.applicant,
+						"party_type": accrual.applicant_type,
 						"debit_in_account_currency": amount,
 						"debit": amount,
 						"reference_type": "Loan",
-						"reference_name": loan_doc.name,
-						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+						"reference_name": accrual.loan,
+						"cost_center": erpnext.get_default_cost_center(accrual.company),
 					},
 					{
 						"account": account_details.interest_receivable_account,
-						"party": loan_doc.applicant,
-						"party_type": loan_doc.applicant_type,
+						"party": accrual.applicant,
+						"party_type": accrual.applicant_type,
 						"credit_in_account_currency": amount,
 						"credit": amount,
 						"reference_type": "Loan",
-						"reference_name": loan_doc.name,
-						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+						"reference_name": accrual.loan,
+						"cost_center": erpnext.get_default_cost_center(accrual.company),
 					},
 					{
 						"account": account_details.suspense_interest_income,
@@ -763,7 +808,7 @@ def move_unpaid_interest_to_suspense_ledger(loan, posting_date):
 						"credit": amount,
 						"reference_type": "Loan Interest Accrual",
 						"reference_name": accrual.name,
-						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+						"cost_center": erpnext.get_default_cost_center(accrual.company),
 					},
 					{
 						"account": account_details.interest_income_account,
@@ -771,7 +816,7 @@ def move_unpaid_interest_to_suspense_ledger(loan, posting_date):
 						"debit_in_account_currency": amount,
 						"reference_type": "Loan Interest Accrual",
 						"reference_name": accrual.name,
-						"cost_center": erpnext.get_default_cost_center(loan_doc.company),
+						"cost_center": erpnext.get_default_cost_center(accrual.company),
 					},
 				],
 			}

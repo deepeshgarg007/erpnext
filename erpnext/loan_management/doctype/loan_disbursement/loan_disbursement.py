@@ -23,10 +23,31 @@ class LoanDisbursement(AccountsController):
 		self.validate_disbursal_amount()
 
 	def on_submit(self):
+		if self.is_term_loan:
+			self.update_repayment_schedule_status()
+
 		self.set_status_and_amounts()
 		self.make_gl_entries()
 
+	def update_repayment_schedule_status(self, cancel=0):
+		if cancel:
+			status = "Initiated"
+			current_status = "Disbursed"
+		else:
+			status = "Disbursed"
+			current_status = "Initiated"
+
+		schedule = frappe.db.get_value(
+			"Loan Repayment Schedule",
+			{"loan": self.against_loan, "docstatus": 1, "status": current_status},
+			"name",
+		)
+
+		frappe.db.set_value("Loan Repayment Schedule", schedule, "status", status)
+
 	def on_cancel(self):
+		if self.is_term_loan:
+			self.update_repayment_schedule_status(cancel=1)
 		self.set_status_and_amounts(cancel=1)
 		self.make_gl_entries(cancel=1)
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]

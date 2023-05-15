@@ -12,6 +12,7 @@
   "column_break_4",
   "company",
   "applicant",
+  "is_term_loan",
   "section_break_7",
   "disbursement_date",
   "clearance_date",
@@ -180,12 +181,19 @@
    "label": "Loan Account",
    "options": "Account",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "against_loan.is_term_loan",
+   "fieldname": "is_term_loan",
+   "fieldtype": "Check",
+   "label": "Is Term Loan"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-09 17:14:15.652914",
+ "modified": "2023-05-15 08:43:27.900018",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Disbursement",

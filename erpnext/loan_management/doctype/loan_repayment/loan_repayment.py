@@ -52,7 +52,9 @@ class LoanRepayment(AccountsController):
 		self.make_gl_entries(cancel=1)
 		if self.is_npa:
 			# Mark back all loans as NPA
-			update_all_linked_loan_customer_npa_status(self.is_npa, self.applicant_type, self.applicant)
+			update_all_linked_loan_customer_npa_status(
+				self.is_npa, self.manual_npa, self.applicant_type, self.applicant
+			)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -910,7 +912,9 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 			and entry.accrual_type == "Regular"
 		):
 			penalty_amount += (
-				entry.interest_amount * (loan_type_details.penalty_interest_rate / 100) * no_of_late_days
+				(entry.interest_amount + entry.payable_principal_amount)
+				* (loan_type_details.penalty_interest_rate / 100)
+				* no_of_late_days
 			) / 365
 
 		total_pending_interest += entry.interest_amount
