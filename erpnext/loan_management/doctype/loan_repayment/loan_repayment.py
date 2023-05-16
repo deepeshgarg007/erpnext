@@ -493,7 +493,6 @@ class LoanRepayment(AccountsController):
 		return interest_paid, updated_entries
 
 	def allocate_charges(self, interest_paid):
-		print("Inininini", interest_paid)
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
 		if interest_paid > 0:
 			if self.penalty_amount and interest_paid > self.penalty_amount:
@@ -506,12 +505,11 @@ class LoanRepayment(AccountsController):
 		if interest_paid > 0 and self.get("pending_charges"):
 			self.total_paid_charges = 0
 			for charge in self.get("pending_charges"):
-				print("########")
 				if charge.pending_charge_amount and interest_paid > charge.pending_charge_amount:
 					charge.allocated_amount = charge.pending_charge_amount
 					interest_paid -= charge.pending_charge_amount
 					self.total_paid_charges += charge.allocated_amount
-				elif charge.amount:
+				elif charge.pending_charge_amount:
 					charge.allocated_amount = interest_paid
 					interest_paid = 0
 
@@ -1066,6 +1064,8 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 			+ amounts["penalty_amount"]
 			+ amounts["total_charges_payable"]
 		)
+
+	amounts["payable_amount"] += amounts["total_charges_payable"]
 
 	if with_loan_details:
 		return {"amounts": amounts, "loan_details": loan_details}
