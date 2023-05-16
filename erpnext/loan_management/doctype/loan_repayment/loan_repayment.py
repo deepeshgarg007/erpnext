@@ -10,10 +10,7 @@ import erpnext
 from erpnext.accounts.general_ledger import make_gl_entries
 from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.controllers.accounts_controller import AccountsController
-from erpnext.loan_management.doctype.loan.loan import (
-	restore_pervious_dpd_state,
-	update_all_linked_loan_customer_npa_status,
-)
+from erpnext.loan_management.doctype.loan.loan import update_all_linked_loan_customer_npa_status
 from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
 	get_last_accrual_date,
 	get_per_day_interest,
@@ -61,7 +58,7 @@ class LoanRepayment(AccountsController):
 				self.is_npa, self.manual_npa, self.applicant_type, self.applicant
 			)
 
-		restore_pervious_dpd_state(self.applicant_type, self.applicant, self.name)
+		# restore_pervious_dpd_state(self.applicant_type, self.applicant, self.name)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
