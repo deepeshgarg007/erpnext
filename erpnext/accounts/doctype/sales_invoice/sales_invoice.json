@@ -10,6 +10,7 @@
   "title",
   "naming_series",
   "customer",
+  "loan",
   "customer_name",
   "tax_id",
   "company",
@@ -2135,6 +2136,12 @@
    "fieldname": "only_include_allocated_payments",
    "fieldtype": "Check",
    "label": "Only Include Allocated Payments"
+  },
+  {
+   "fieldname": "loan",
+   "fieldtype": "Link",
+   "label": "Loan",
+   "options": "Loan"
   }
  ],
  "icon": "fa fa-file-text",
@@ -2147,7 +2154,7 @@
    "link_fieldname": "consolidated_invoice"
   }
  ],
- "modified": "2023-04-03 22:55:14.206473",
+ "modified": "2023-05-16 09:02:48.121845",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Sales Invoice",

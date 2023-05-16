@@ -32,6 +32,11 @@
   "amount_paid",
   "accounting_dimensions_section",
   "cost_center",
+  "section_break_a5v1",
+  "pending_charges",
+  "column_break_g9f3",
+  "total_charges_payable",
+  "total_paid_charges",
   "references_section",
   "reference_number",
   "column_break_21",
@@ -324,12 +329,39 @@
    "fieldname": "manual_npa",
    "fieldtype": "Check",
    "label": "Manual NPA"
+  },
+  {
+   "fieldname": "section_break_a5v1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pending_charges",
+   "fieldtype": "Table",
+   "label": "Pending Charges",
+   "options": "Loan Charge Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_charges_payable",
+   "fieldtype": "Currency",
+   "label": "Total Charges Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_paid_charges",
+   "fieldtype": "Currency",
+   "label": "Total Paid Charges",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_g9f3",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-14 21:42:15.235462",
+ "modified": "2023-05-16 10:30:30.755112",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment",

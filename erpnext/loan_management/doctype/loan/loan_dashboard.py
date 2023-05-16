@@ -16,6 +16,6 @@ def get_data():
 				]
 			},
 			{"items": ["Loan Repayment", "Loan Interest Accrual", "Loan Write Off", "Loan Restructure"]},
-			{"items": ["Loan Security Unpledge", "Days Past Due Log", "Journal Entry"]},
+			{"items": ["Loan Security Unpledge", "Days Past Due Log", "Journal Entry", "Sales Invoice"]},
 		],
 	}
