@@ -865,7 +865,6 @@ def get_outstanding_invoices(
 	max_outstanding=None,
 	accounting_dimensions=None,
 ):
-
 	ple = qb.DocType("Payment Ledger Entry")
 	outstanding_invoices = []
 	precision = frappe.get_precision("Sales Invoice", "outstanding_amount") or 2

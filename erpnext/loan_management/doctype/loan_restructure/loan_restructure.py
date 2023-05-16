@@ -14,13 +14,15 @@ from erpnext.loan_management.doctype.loan_repayment_schedule.loan_repayment_sche
 
 class LoanRestructure(AccountsController):
 	def validate(self):
+		self.set_completed_tenure()
 		self.update_overdue_amounts()
-		self.validate_waiver_amount()
+		self.validate_branch_limit()
 		self.allocate_security_deposit()
+		self.validate_waiver_amount()
 		self.calculate_balance_amounts()
 		self.calculate_new_loan_amount()
-		self.validate_branch_limit()
 		self.validate_new_loan_amount()
+		self.add_restructure_charges()
 
 		self.update_restructured_loan_details()
 		if not self.is_new():
@@ -36,7 +38,7 @@ class LoanRestructure(AccountsController):
 			self.db_set("status", status)
 
 	def allocate_security_deposit(self):
-		deposit_amount = self.available_security_deposit
+		deposit_amount = flt(self.available_security_deposit)
 		self.principal_adjusted = 0
 		self.adjusted_interest_amount = 0
 		self.adjusted_other_charges = 0
@@ -75,6 +77,30 @@ class LoanRestructure(AccountsController):
 		)
 		self.balance_penalty_amount = flt(self.penalty_overdue) - flt(self.adjusted_penalty_interest)
 
+	def set_completed_tenure(self):
+		previous_repayment_schedule = frappe.db.get_value(
+			"Loan Repayment Schedule", {"loan": self.loan, "docstatus": 1, "status": "Disbursed"}, "name"
+		)
+
+		self.completed_tenure = frappe.db.count(
+			"Repayment Schedule", filters={"parent": previous_repayment_schedule, "is_accrued": 1}
+		)
+
+	def add_restructure_charges(self):
+		self.restructure_charges = 0
+
+		for charge in frappe.get_all(
+			"Loan Charges",
+			filters={"parent": self.loan_type, "event": "Restructure"},
+			fields=["charge_type", "charge_based_on", "amount", "percentage"],
+		):
+			if charge.charge_based_on == "Percentage":
+				amount = flt(self.new_loan_amount) * flt(charge.percentage) / 100
+			else:
+				amount = flt(charge.amount)
+
+			self.restructure_charges += amount
+
 	def calculate_new_loan_amount(self):
 		self.new_loan_amount = flt(self.pending_principal_amount) - flt(self.principal_adjusted)
 
@@ -111,6 +137,7 @@ class LoanRestructure(AccountsController):
 			self.update_repayment_schedule_status(status="Disbursed")
 			self.update_branch_limit()
 			self.update_restructure_count()
+			self.make_restructure_charges_invoice()
 		elif self.status == "Rejected":
 			self.update_repayment_schedule_status(status="Rejected")
 			# self.update_branch_limit(cancel=1)
@@ -161,6 +188,33 @@ class LoanRestructure(AccountsController):
 		frappe.db.set_value(
 			"Loan", self.loan, "loan_restructure_count", self.current_restructure_count + increment_count
 		)
+
+	def make_restructure_charges_invoice(self):
+		if self.applicant_type == "Customer":
+
+			si = frappe.new_doc("Sales Invoice")
+			si.customer = self.applicant
+
+			for charge in frappe.get_all(
+				"Loan Charges",
+				filters={"parent": self.loan_type, "event": "Restructure"},
+				fields=["charge_type", "charge_based_on", "amount", "percentage"],
+			):
+
+				si.append(
+					"items",
+					{
+						"item_code": charge.charge_type,
+						"qty": 1,
+						"rate": charge.amount
+						if charge.charge_based_on == "Fixed Amount"
+						else flt(self.new_loan_amount) * flt(charge.percentage) / 100,
+					},
+				)
+
+			si.loan = self.loan
+			si.save()
+			si.submit()
 
 	def update_repayment_schedule_status(self, status):
 		if status == "Initiated":
@@ -225,10 +279,12 @@ class LoanRestructure(AccountsController):
 				frappe.throw(_("Branch Limit Exceeded"))
 
 	def validate_waiver_amount(self):
-		if flt(self.interest_waiver_amount) > flt(self.interest_overdue):
+		if flt(self.interest_waiver_amount) > flt(self.interest_overdue) - flt(
+			self.adjusted_interest_amount
+		):
 			frappe.throw(_("Interest Waiver Amount cannot be greater than overdue interest"))
 
-		if flt(self.other_charges_waiver) > flt(self.charges_overdue):
+		if flt(self.other_charges_waiver) > flt(self.charges_overdue) - flt(self.adjusted_other_charges):
 			frappe.throw(_("Other Charges Waiver cannot be greater than overdue charges"))
 
 	def update_restructured_loan_details(self):
@@ -260,12 +316,18 @@ class LoanRestructure(AccountsController):
 		frappe.db.set_value("Loan", self.loan, {"is_npa": 1, "manual_npa": 1})
 
 		# Mark Old Repayment Schedule as Restructured
-		frappe.db.set_value(
-			"Loan Repayment Schedule",
-			{"loan": self.loan, "status": ("!=", "Restructured"), "loan_restructure": ("!=", self.name)},
-			"status",
-			"Restructured",
-		)
+		loan_schedule = frappe.qb.DocType("Loan Repayment Schedule")
+
+		frappe.qb.update(loan_schedule).set(loan_schedule.status, "Restructured").where(
+			(loan_schedule.docstatus == 1)
+			& (loan_schedule.loan == self.loan)
+			& (loan_schedule.status == "Disbursed")
+			& (
+				(loan_schedule.loan_restructure.isnull())
+				| (loan_schedule.loan_restructure == "")
+				| (loan_schedule.loan_restructure != self.name)
+			)
+		).run()
 
 	def make_update_draft_loan_repayment_schedule(self):
 		draft_schedule = frappe.db.get_value(

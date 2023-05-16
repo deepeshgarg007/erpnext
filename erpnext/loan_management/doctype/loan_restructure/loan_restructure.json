@@ -21,6 +21,7 @@
   "loan_details_section",
   "loan_type",
   "old_tenure",
+  "completed_tenure",
   "old_rate_of_interest",
   "disbursed_amount",
   "column_break_gl0p",
@@ -29,6 +30,8 @@
   "pre_restructure_dpd",
   "principal_amount_details_section",
   "total_overdue_amount",
+  "restructure_charges",
+  "waive_off_restructure_charges",
   "column_break_bnny",
   "pending_principal_amount",
   "available_security_deposit",
@@ -229,7 +232,8 @@
   {
    "fieldname": "repayment_start_date",
    "fieldtype": "Date",
-   "label": "Repayment Start Date"
+   "label": "New Repayment Start Date",
+   "reqd": 1
   },
   {
    "fieldname": "pending_principal_amount",
@@ -449,12 +453,28 @@
    "fieldtype": "Currency",
    "label": "Balance Overdue Principal",
    "read_only": 1
+  },
+  {
+   "fieldname": "restructure_charges",
+   "fieldtype": "Currency",
+   "label": "Restructure Charges"
+  },
+  {
+   "fieldname": "completed_tenure",
+   "fieldtype": "Int",
+   "label": "Completed Tenure"
+  },
+  {
+   "default": "0",
+   "fieldname": "waive_off_restructure_charges",
+   "fieldtype": "Check",
+   "label": "Waive Off Restructure Charges"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-12 12:55:12.413053",
+ "modified": "2023-05-14 21:06:11.654338",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",
