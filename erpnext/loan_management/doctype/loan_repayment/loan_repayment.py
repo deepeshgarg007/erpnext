@@ -512,6 +512,7 @@ class LoanRepayment(AccountsController):
 				elif charge.pending_charge_amount:
 					charge.allocated_amount = interest_paid
 					interest_paid = 0
+					self.total_paid_charges += charge.allocated_amount
 
 	def allocate_excess_payment_for_demand_loans(self, interest_paid, repayment_details):
 		if repayment_details["unaccrued_interest"] and interest_paid > 0:
@@ -1053,19 +1054,15 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 		amounts["total_charges_payable"] += d.outstanding_amount
 
 	amounts["charges"] = charges
+	amounts["payable_amount"] += amounts["total_charges_payable"]
 
 	# update values for closure
 	if payment_type == "Loan Closure":
 		amounts["payable_principal_amount"] = amounts["pending_principal_amount"]
 		amounts["interest_amount"] += amounts["unaccrued_interest"]
 		amounts["payable_amount"] = (
-			amounts["payable_principal_amount"]
-			+ amounts["interest_amount"]
-			+ amounts["penalty_amount"]
-			+ amounts["total_charges_payable"]
+			amounts["payable_principal_amount"] + amounts["interest_amount"] + amounts["penalty_amount"]
 		)
-
-	amounts["payable_amount"] += amounts["total_charges_payable"]
 
 	if with_loan_details:
 		return {"amounts": amounts, "loan_details": loan_details}
