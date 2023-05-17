@@ -43,7 +43,7 @@ frappe.ui.form.on("Loan Restructure", {
 				frm.set_value("principal_overdue", amounts["payable_principal_amount"]);
 				frm.set_value("interest_overdue", amounts["interest_amount"]);
 				frm.set_value("penalty_overdue", amounts["penalty_amount"]);
-				frm.set_value("charges_overdue", amounts["charges_amount"]);
+				frm.set_value("charges_overdue", amounts["total_charges_payable"]);
 				frm.set_value("unaccrued_interest", amounts["unaccrued_interest"]);
 				frm.set_value("available_security_deposit", amounts["available_security_deposit"]);
 			}

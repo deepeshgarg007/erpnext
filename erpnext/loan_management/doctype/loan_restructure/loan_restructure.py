@@ -6,7 +6,7 @@ from frappe import _
 from frappe.utils import flt, getdate
 
 from erpnext.controllers.accounts_controller import AccountsController
-from erpnext.loan_management.doctype.loan_repayment.loan_repayment import get_amounts
+from erpnext.loan_management.doctype.loan_repayment.loan_repayment import calculate_amounts
 from erpnext.loan_management.doctype.loan_repayment_schedule.loan_repayment_schedule import (
 	get_monthly_repayment_amount,
 )
@@ -241,24 +241,14 @@ class LoanRestructure(AccountsController):
 		self.update_restructure_count(cancel=1)
 
 	def update_overdue_amounts(self):
-		amounts = {
-			"penalty_amount": 0.0,
-			"interest_amount": 0.0,
-			"pending_principal_amount": 0.0,
-			"payable_principal_amount": 0.0,
-			"payable_amount": 0.0,
-			"unaccrued_interest": 0.0,
-			"due_date": "",
-		}
-
-		amounts = get_amounts(amounts, self.loan, self.restructure_date)
+		amounts = calculate_amounts(self.loan, self.restructure_date)
 
 		self.pending_principal_amount = amounts.get("pending_principal_amount")
 		self.total_overdue_amount = amounts.get("payable_amount")
 		self.principal_overdue = amounts.get("payable_principal_amount")
 		self.interest_overdue = amounts.get("interest_amount")
 		self.penalty_overdue = amounts.get("penalty_amount")
-		self.charges_overdue = amounts.get("charges_amount")
+		self.charges_overdue = amounts.get("total_charges_payable")
 		self.unaccrued_interest = amounts.get("unaccrued_interest")
 		self.available_security_deposit = amounts.get("available_security_deposit")
 
