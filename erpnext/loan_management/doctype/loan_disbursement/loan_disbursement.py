@@ -234,9 +234,9 @@ class LoanDisbursement(AccountsController):
 				self.get_gl_dict(
 					{
 						"account": self.disbursement_account,
-						"against": security_deposit_account,
-						"debit": self.monthly_repayment_amount,
-						"debit_in_account_currency": self.monthly_repayment_amount,
+						"against": self.loan_account,
+						"credit": -1 * self.monthly_repayment_amount,
+						"credit_in_account_currency": -1 * self.monthly_repayment_amount,
 						"against_voucher_type": "Loan",
 						"against_voucher": self.against_loan,
 						"remarks": _("Disbursement against loan:") + self.against_loan,

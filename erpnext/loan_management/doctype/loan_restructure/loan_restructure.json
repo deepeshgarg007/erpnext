@@ -220,7 +220,8 @@
    "fieldname": "new_loan_amount",
    "fieldtype": "Currency",
    "label": "New Loan Amount",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "read_only": 1
   },
   {
    "fetch_from": "loan.days_past_due",
@@ -474,7 +475,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-14 21:06:11.654338",
+ "modified": "2023-05-17 13:12:08.174199",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

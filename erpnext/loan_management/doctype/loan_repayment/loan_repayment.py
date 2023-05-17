@@ -373,9 +373,7 @@ class LoanRepayment(AccountsController):
 				else:
 					self.allocate_as_per_non_npa(interest_paid, repayment_details)
 			else:
-				if (
-					offset_base_on.collection_offset_sequence_for_standard_asset == "IP...IP...IP...Penal...CCC"
-				):
+				if offset_base_on.collection_offset_sequence_for_standard_asset == "IP...IP...IP...CCC":
 					self.allocate_as_per_non_npa(interest_paid, repayment_details)
 				else:
 					self.allocate_as_per_npa(interest_paid, repayment_details)
@@ -821,7 +819,7 @@ def get_accrued_interest_entries(against_loan, posting_date=None):
 
 	unpaid_accrued_entries = frappe.db.sql(
 		"""
-			SELECT name, posting_date, interest_amount - paid_interest_amount as interest_amount,
+			SELECT name, due_date, interest_amount - paid_interest_amount as interest_amount,
 				payable_principal_amount - paid_principal_amount as payable_principal_amount,
 				accrual_type
 			FROM
@@ -833,7 +831,7 @@ def get_accrued_interest_entries(against_loan, posting_date=None):
 				payable_principal_amount - paid_principal_amount > 0)
 			AND
 				docstatus = 1
-			ORDER BY posting_date
+			ORDER BY due_date
 		""",
 		(against_loan, posting_date),
 		as_dict=1,
@@ -990,7 +988,7 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 		):
 			due_date_after_grace_period = add_days(computed_penalty_date, 1)
 
-		no_of_late_days = date_diff(posting_date, due_date_after_grace_period) + 1
+		no_of_late_days = date_diff(posting_date, due_date_after_grace_period)
 
 		if (
 			no_of_late_days > 0

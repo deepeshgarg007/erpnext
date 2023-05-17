@@ -540,9 +540,7 @@ def update_days_past_due_in_loans(
 	"""Update days past due in loans"""
 	posting_date = posting_date or getdate()
 
-	accruals = get_pending_loan_interest_accruals(
-		loan_type=loan_type, loan_name=loan_name, filter_entries=False
-	)
+	accruals = get_pending_loan_interest_accruals(loan_type=loan_type, loan_name=loan_name)
 	threshold_map = get_dpd_threshold_map()
 	checked_loans = []
 
