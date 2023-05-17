@@ -4,6 +4,9 @@
 {% include 'erpnext/loan_management/loan_common.js' %};
 
 frappe.ui.form.on('Loan Repayment', {
+	setup(frm) {
+		frm.ignore_doctypes_on_cancel_all = ["Process Asset Classification"];
+	},
 	onload: function(frm) {
 		frm.set_query('against_loan', function() {
 			return {

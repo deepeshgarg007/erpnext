@@ -54,14 +54,14 @@
    "fieldname": "payment_reference",
    "fieldtype": "Link",
    "label": "Payment Reference",
-   "options": "Payment Entry",
+   "options": "Loan Repayment",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-15 18:39:15.398300",
+ "modified": "2023-05-17 10:59:34.824696",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Process Asset Classification",

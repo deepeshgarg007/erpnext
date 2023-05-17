@@ -1,15 +1,17 @@
 {
  "actions": [],
- "creation": "2023-04-26 17:07:40.828226",
+ "allow_rename": 1,
+ "creation": "2023-05-16 19:55:31.455143",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "loan",
-  "posting_date",
-  "days_past_due",
-  "process_asset_classification"
+  "loan_disbursement",
+  "deposit_amount",
+  "allocated_amount",
+  "amended_from"
  ],
  "fields": [
   {
@@ -20,31 +22,42 @@
    "read_only": 1
   },
   {
-   "fieldname": "posting_date",
-   "fieldtype": "Date",
-   "label": "Posting Date",
-   "read_only": 1
-  },
-  {
-   "fieldname": "days_past_due",
-   "fieldtype": "Int",
-   "label": "Days Past Due",
-   "read_only": 1
-  },
-  {
-   "fieldname": "process_asset_classification",
+   "fieldname": "loan_disbursement",
    "fieldtype": "Link",
-   "label": "Process Asset Classification",
-   "options": "Process Asset Classification",
+   "label": "Loan Disbursement",
+   "options": "Loan Disbursement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deposit_amount",
+   "fieldtype": "Currency",
+   "label": "Deposit Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_amount",
+   "fieldtype": "Currency",
+   "label": "Allocated Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Loan Security Deposit",
+   "print_hide": 1,
    "read_only": 1
   }
  ],
  "in_create": 1,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2023-05-17 10:38:06.085520",
+ "modified": "2023-05-16 19:55:31.455143",
  "modified_by": "Administrator",
  "module": "Loan Management",
- "name": "Days Past Due Log",
+ "name": "Loan Security Deposit",
  "owner": "Administrator",
  "permissions": [
   {

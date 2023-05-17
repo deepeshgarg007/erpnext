@@ -132,7 +132,6 @@ class LoanRestructure(AccountsController):
 			self.make_loan_adjustment_for_waiver()
 			# self.make_interest_waiver()
 			self.make_loan_adjustment_for_capitalization()
-			self.mark_loan_as_npa()
 			self.update_totals()
 			self.update_repayment_schedule_status(status="Disbursed")
 			self.update_branch_limit()
@@ -213,6 +212,7 @@ class LoanRestructure(AccountsController):
 				)
 
 			si.loan = self.loan
+			self.due_date = self.restructure_date
 			si.save()
 			si.submit()
 
@@ -307,9 +307,6 @@ class LoanRestructure(AccountsController):
 	def validate_new_loan_amount(self):
 		if self.new_loan_amount > self.disbursed_amount:
 			frappe.throw(frappe._("New Loan Amount cannot be greater than original disbursed amount"))
-
-	def mark_loan_as_npa(self):
-		frappe.db.set_value("Loan", self.loan, "is_npa", 1)
 
 	def restructure_loan(self):
 		# Mark Loan as NPA

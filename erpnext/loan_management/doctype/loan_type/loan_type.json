@@ -34,6 +34,7 @@
   "penalty_receivable_account",
   "charges_receivable_account",
   "penalty_income_account",
+  "security_deposit_account",
   "loan_waiver_accounts_section",
   "principal_waiver_account",
   "interest_waiver_account",
@@ -281,12 +282,18 @@
    "fieldtype": "Table",
    "label": "Loan Charges",
    "options": "Loan Charges"
+  },
+  {
+   "fieldname": "security_deposit_account",
+   "fieldtype": "Link",
+   "label": "Security Deposit Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-12 17:14:40.713007",
+ "modified": "2023-05-16 20:06:27.584004",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

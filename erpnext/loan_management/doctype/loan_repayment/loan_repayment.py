@@ -8,7 +8,6 @@ from frappe.utils import add_days, cint, date_diff, flt, get_datetime, getdate
 
 import erpnext
 from erpnext.accounts.general_ledger import make_gl_entries
-from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.loan_management.doctype.loan.loan import update_all_linked_loan_customer_npa_status
 from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
@@ -43,14 +42,21 @@ class LoanRepayment(AccountsController):
 		# self.update_repayment_schedule()
 		self.make_gl_entries()
 		create_process_asset_classification(
-			posting_date=self.posting_date, loan_type=self.loan_type, loan=self.against_loan
+			posting_date=self.posting_date,
+			loan_type=self.loan_type,
+			loan=self.against_loan,
+			payment_reference=self.name,
 		)
 
 	def on_cancel(self):
 		self.check_future_accruals()
 		# self.update_repayment_schedule(cancel=1)
 		self.mark_as_unpaid()
-		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
+		self.ignore_linked_doctypes = [
+			"GL Entry",
+			"Payment Ledger Entry",
+			"Process Asset Classification",
+		]
 		self.make_gl_entries(cancel=1)
 		if self.is_npa or self.manual_npa:
 			# Mark back all loans as NPA
@@ -58,7 +64,7 @@ class LoanRepayment(AccountsController):
 				self.is_npa, self.manual_npa, self.applicant_type, self.applicant
 			)
 
-		# restore_pervious_dpd_state(self.applicant_type, self.applicant, self.name)
+		frappe.db.set_value("Loan", self.against_loan, "days_past_due", self.days_past_due)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -166,12 +172,7 @@ class LoanRepayment(AccountsController):
 
 	def add_pending_charges(self):
 		self.set("pending_charges", [])
-		charges_receivable_account = frappe.get_value(
-			"Loan Type", self.loan_type, "charges_receivable_account"
-		)
-		invoices = get_outstanding_invoices(
-			self.applicant_type, self.applicant, charges_receivable_account
-		)
+		invoices = get_outstanding_invoices(self.against_loan)
 		for d in invoices:
 			self.append(
 				"pending_charges",
@@ -291,10 +292,13 @@ class LoanRepayment(AccountsController):
 		)
 
 	def check_future_accruals(self):
+		if self.is_term_loan:
+			return
+
 		future_accrual_date = frappe.db.get_value(
 			"Loan Interest Accrual",
-			{"posting_date": (">", self.posting_date), "docstatus": 1, "loan": self.against_loan},
-			"posting_date",
+			{"due_date": (">", self.posting_date), "docstatus": 1, "loan": self.against_loan},
+			"due_date",
 		)
 
 		if future_accrual_date:
@@ -502,9 +506,9 @@ class LoanRepayment(AccountsController):
 				self.total_penalty_paid = flt(interest_paid, precision)
 				interest_paid = 0
 
-		if interest_paid > 0 and self.get("pending_charges"):
 			self.total_paid_charges = 0
 			for charge in self.get("pending_charges"):
+				charge.allocated_amount = 0
 				if charge.pending_charge_amount and interest_paid > charge.pending_charge_amount:
 					charge.allocated_amount = charge.pending_charge_amount
 					interest_paid -= charge.pending_charge_amount
@@ -513,6 +517,8 @@ class LoanRepayment(AccountsController):
 					charge.allocated_amount = interest_paid
 					interest_paid = 0
 					self.total_paid_charges += charge.allocated_amount
+
+				charge.allocated_amount = flt(charge.allocated_amount, precision)
 
 	def allocate_excess_payment_for_demand_loans(self, interest_paid, repayment_details):
 		if repayment_details["unaccrued_interest"] and interest_paid > 0:
@@ -562,8 +568,8 @@ class LoanRepayment(AccountsController):
 				"interest_receivable_account",
 				"suspense_interest_receivable",
 				"suspense_interest_income",
-				"penalty_receivable_account",
 				"interest_income_account",
+				"charges_receivable_account",
 			],
 			as_dict=1,
 		)
@@ -572,8 +578,8 @@ class LoanRepayment(AccountsController):
 			gle_map.append(
 				self.get_gl_dict(
 					{
-						"account": account_details.penalty_receivable_account,
-						"against": payment_account,
+						"account": payment_account,
+						"against": self.penalty_income_account,
 						"debit": self.total_penalty_paid,
 						"debit_in_account_currency": self.total_penalty_paid,
 						"against_voucher_type": "Loan",
@@ -591,7 +597,7 @@ class LoanRepayment(AccountsController):
 				self.get_gl_dict(
 					{
 						"account": self.penalty_income_account,
-						"against": self.loan_account,
+						"against": payment_account,
 						"credit": self.total_penalty_paid,
 						"credit_in_account_currency": self.total_penalty_paid,
 						"against_voucher_type": "Loan",
@@ -602,6 +608,42 @@ class LoanRepayment(AccountsController):
 					}
 				)
 			)
+
+		if self.total_paid_charges:
+			for charges in self.get("pending_charges"):
+				gle_map.append(
+					self.get_gl_dict(
+						{
+							"account": account_details.charges_receivable_account,
+							"party_type": self.applicant_type,
+							"party": self.applicant,
+							"against": payment_account,
+							"credit": charges.allocated_amount,
+							"credit_in_account_currency": charges.allocated_amount,
+							"against_voucher_type": "Sales Invoice",
+							"against_voucher": charges.sales_invoice,
+							"remarks": _(remarks),
+							"cost_center": self.cost_center,
+							"posting_date": getdate(self.posting_date),
+						}
+					)
+				)
+
+				gle_map.append(
+					self.get_gl_dict(
+						{
+							"account": payment_account,
+							"against": account_details.charges_receivable_account,
+							"debit": charges.allocated_amount,
+							"debit_in_account_currency": charges.allocated_amount,
+							"against_voucher_type": "Loan",
+							"against_voucher": self.against_loan,
+							"remarks": _(remarks),
+							"cost_center": self.cost_center,
+							"posting_date": getdate(self.posting_date),
+						}
+					)
+				)
 
 		for repayment in self.get("repayment_details"):
 			if repayment.paid_interest_amount:
@@ -934,18 +976,18 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 	penalty_amount = 0
 	payable_principal_amount = 0
 	final_due_date = ""
-	due_date = ""
 
 	for entry in accrued_interest_entries:
 		# Loan repayment due date is one day after the loan interest is accrued
 		# no of late days are calculated based on loan repayment posting date
 		# and if no_of_late days are positive then penalty is levied
 
-		due_date = add_days(entry.posting_date, 1)
-		due_date_after_grace_period = add_days(due_date, loan_type_details.grace_period_in_days)
+		due_date_after_grace_period = add_days(entry.due_date, loan_type_details.grace_period_in_days)
 
 		# Consider one day after already calculated penalty
-		if computed_penalty_date and getdate(computed_penalty_date) >= due_date_after_grace_period:
+		if computed_penalty_date and getdate(computed_penalty_date) >= getdate(
+			due_date_after_grace_period
+		):
 			due_date_after_grace_period = add_days(computed_penalty_date, 1)
 
 		no_of_late_days = date_diff(posting_date, due_date_after_grace_period) + 1
@@ -974,14 +1016,14 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 			},
 		)
 
-		if due_date and not final_due_date:
-			final_due_date = add_days(due_date, loan_type_details.grace_period_in_days)
+		if entry.due_date and not final_due_date:
+			final_due_date = add_days(entry.due_date, loan_type_details.grace_period_in_days)
 
 	pending_principal_amount = get_pending_principal_amount(against_loan_doc)
 
 	unaccrued_interest = 0
-	if due_date:
-		pending_days = date_diff(posting_date, due_date) + 1
+	if entry.due_date:
+		pending_days = date_diff(posting_date, entry.due_date) + 1
 	else:
 		last_accrual_date = get_last_accrual_date(against_loan_doc.name)
 		pending_days = date_diff(posting_date, last_accrual_date) + 1
@@ -1031,19 +1073,8 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 	else:
 		amounts = get_amounts(amounts, against_loan, posting_date)
 
-	loan_details = frappe.db.get_value(
-		"Loan", against_loan, ["loan_type", "applicant_type", "applicant"], as_dict=1
-	)
-	charges_receivable_account = frappe.db.get_value(
-		"Loan Type", loan_details.loan_type, "charges_receivable_account"
-	)
-
 	charges = []
-	invoices = get_outstanding_invoices(
-		party_type=loan_details.applicant_type,
-		party=loan_details.applicant,
-		account=charges_receivable_account,
-	)
+	invoices = get_outstanding_invoices(against_loan)
 	for d in invoices:
 		charges.append(
 			{
@@ -1068,3 +1099,11 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 		return {"amounts": amounts, "loan_details": loan_details}
 	else:
 		return amounts
+
+
+def get_outstanding_invoices(loan):
+	return frappe.db.get_all(
+		"Sales Invoice",
+		filters={"loan": loan, "outstanding_amount": (">", 0), "docstatus": 1},
+		fields=["name as voucher_no", "outstanding_amount"],
+	)

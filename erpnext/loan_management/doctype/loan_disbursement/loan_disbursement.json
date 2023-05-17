@@ -9,10 +9,13 @@
   "against_loan",
   "posting_date",
   "applicant_type",
+  "loan_type",
+  "monthly_repayment_amount",
   "column_break_4",
   "company",
   "applicant",
   "is_term_loan",
+  "withhold_security_deposit",
   "section_break_7",
   "disbursement_date",
   "clearance_date",
@@ -188,12 +191,34 @@
    "fieldname": "is_term_loan",
    "fieldtype": "Check",
    "label": "Is Term Loan"
+  },
+  {
+   "default": "0",
+   "fieldname": "withhold_security_deposit",
+   "fieldtype": "Check",
+   "label": "Withhold Security Deposit"
+  },
+  {
+   "fetch_from": "against_loan.monthly_repayment_amount",
+   "fieldname": "monthly_repayment_amount",
+   "fieldtype": "Currency",
+   "label": "Monthly Repayment Amount",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "against_loan.loan_type",
+   "fieldname": "loan_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Loan Type",
+   "options": "Loan Type",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-15 08:43:27.900018",
+ "modified": "2023-05-16 20:42:49.024069",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Disbursement",
