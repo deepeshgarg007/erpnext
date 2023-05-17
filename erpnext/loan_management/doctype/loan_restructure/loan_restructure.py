@@ -260,6 +260,7 @@ class LoanRestructure(AccountsController):
 		self.penalty_overdue = amounts.get("penalty_amount")
 		self.charges_overdue = amounts.get("charges_amount")
 		self.unaccrued_interest = amounts.get("unaccrued_interest")
+		self.available_security_deposit = amounts.get("available_security_deposit")
 
 	def validate_branch_limit(self):
 		if self.branch:

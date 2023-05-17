@@ -1022,8 +1022,8 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 	pending_principal_amount = get_pending_principal_amount(against_loan_doc)
 
 	unaccrued_interest = 0
-	if entry.due_date:
-		pending_days = date_diff(posting_date, entry.due_date) + 1
+	if final_due_date:
+		pending_days = date_diff(posting_date, final_due_date) + 1
 	else:
 		last_accrual_date = get_last_accrual_date(against_loan_doc.name)
 		pending_days = date_diff(posting_date, last_accrual_date) + 1
@@ -1066,6 +1066,7 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 		"unaccrued_interest": 0.0,
 		"due_date": "",
 		"total_charges_payable": 0.0,
+		"available_security_deposit": 0.0,
 	}
 
 	if with_loan_details:
@@ -1086,6 +1087,9 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 
 	amounts["charges"] = charges
 	amounts["payable_amount"] += amounts["total_charges_payable"]
+	amounts["available_security_deposit"] = frappe.db.get_value(
+		"Loan Security Deposit", {"loan": against_loan}, "sum(deposit_amount - allocated_amount)"
+	)
 
 	# update values for closure
 	if payment_type == "Loan Closure":
