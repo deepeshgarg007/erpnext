@@ -24,7 +24,7 @@ class LoanRestructure(AccountsController):
 		self.set_missing_values()
 		self.validate_repayment_start_date()
 		self.calculate_new_loan_amount()
-		self.validate_new_loan_amount()
+		# self.validate_new_loan_amount()
 		self.add_restructure_charges()
 		self.update_restructured_loan_details()
 		if not self.is_new():
