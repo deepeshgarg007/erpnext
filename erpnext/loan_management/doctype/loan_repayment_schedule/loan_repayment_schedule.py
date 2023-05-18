@@ -39,6 +39,7 @@ class LoanRepaymentSchedule(Document):
 		payment_date = self.repayment_start_date
 		balance_amount = self.loan_amount
 		bmi_days = date_diff(add_months(payment_date, -1), self.posting_date) + 1
+		carry_forward_interest = self.adjusted_interest
 
 		while balance_amount > 0:
 			interest_amount, principal_amount, balance_amount, total_payment, days = self.get_amounts(
@@ -47,6 +48,7 @@ class LoanRepaymentSchedule(Document):
 				schedule_type_details.repayment_schedule_type,
 				schedule_type_details.repayment_date_on,
 				bmi_days,
+				carry_forward_interest,
 			)
 
 			if schedule_type_details.repayment_schedule_type == "Pro-rated calendar months":
@@ -81,6 +83,7 @@ class LoanRepaymentSchedule(Document):
 				payment_date = next_payment_date
 
 			bmi_days = 0
+			carry_forward_interest = 0
 
 	def validate_repayment_method(self):
 		if self.repayment_method == "Repay Over Number of Periods" and not self.repayment_periods:
@@ -129,6 +132,9 @@ class LoanRepaymentSchedule(Document):
 		if balance_amount < 0:
 			principal_amount += balance_amount
 			balance_amount = 0.0
+
+		if carry_forward_interest:
+			interest_amount += carry_forward_interest
 
 		total_payment = principal_amount + interest_amount
 

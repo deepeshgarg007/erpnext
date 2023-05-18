@@ -38,6 +38,7 @@
   {
    "fieldname": "date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Date"
   },
   {
@@ -68,12 +69,14 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Company",
    "options": "Company"
   },
   {
    "fieldname": "available_limit",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Available Limit"
   },
   {
@@ -116,6 +119,7 @@
   {
    "fieldname": "delinquent_utilized_limit",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Delinquent Utilized Limit"
   },
   {
@@ -132,7 +136,7 @@
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-05-09 16:29:08.858995",
+ "modified": "2023-05-17 21:50:35.514486",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure Limit Log",
@@ -147,11 +151,26 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Loan Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "branch"
 }

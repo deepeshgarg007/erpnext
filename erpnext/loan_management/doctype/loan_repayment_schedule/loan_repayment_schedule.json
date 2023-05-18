@@ -12,6 +12,7 @@
   "loan_amount",
   "rate_of_interest",
   "posting_date",
+  "adjusted_interest",
   "column_break_n6iy",
   "loan_type",
   "repayment_schedule_type",
@@ -130,12 +131,18 @@
    "fieldtype": "Link",
    "label": "Loan Restructure",
    "options": "Loan Restructure"
+  },
+  {
+   "fieldname": "adjusted_interest",
+   "fieldtype": "Currency",
+   "label": "Adjusted Interest",
+   "options": "Company:company:default_currency"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-14 21:18:37.950410",
+ "modified": "2023-05-18 13:54:10.223209",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment Schedule",
@@ -151,6 +158,19 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Loan Manager",
    "share": 1,
    "write": 1
   }

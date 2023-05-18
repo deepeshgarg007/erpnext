@@ -42,6 +42,9 @@ class LoanBalanceAdjustment(AccountsController):
 		if not self.cost_center:
 			self.cost_center = erpnext.get_default_cost_center(self.company)
 
+		if not self.adjustment_receivable_account:
+			self.adjustment_receivable_account = frappe.db.get_value("Loan", self.loan, "loan_account")
+
 	def validate_if_restructure_in_process(self):
 		if frappe.db.get_value(
 			"Loan Restructure",
@@ -104,13 +107,12 @@ class LoanBalanceAdjustment(AccountsController):
 
 	def make_gl_entries(self, cancel=0, adv_adj=0):
 		gle_map = []
-		loan_account = frappe.db.get_value("Loan", self.loan, "loan_account")
 		remarks = "{} against loan {}".format(self.adjustment_type.capitalize(), self.loan)
 		if self.reference_number:
 			remarks += " with reference no. {}".format(self.reference_number)
 
 		loan_entry = {
-			"account": loan_account,
+			"account": self.adjustment_receivable_account,
 			"against": self.adjustment_account,
 			"against_voucher_type": "Loan",
 			"against_voucher": self.loan,
@@ -122,7 +124,7 @@ class LoanBalanceAdjustment(AccountsController):
 		}
 		company_entry = {
 			"account": self.adjustment_account,
-			"against": loan_account,
+			"against": self.adjustment_receivable_account,
 			"against_voucher_type": "Loan",
 			"against_voucher": self.loan,
 			"remarks": _(remarks),

@@ -43,24 +43,25 @@
   "balance_principal",
   "section_break_suab",
   "interest_overdue",
+  "unaccrued_interest",
   "penalty_overdue",
   "charges_overdue",
   "column_break_jvss",
-  "unaccrued_interest",
-  "column_break_16cq",
   "adjusted_interest_amount",
-  "adjusted_penalty_interest",
-  "adjusted_other_charges",
+  "adjusted_unaccrued_interest",
   "column_break_hkgd",
   "interest_waiver_amount",
+  "unaccrued_interest_waiver",
   "penal_interest_waiver",
   "other_charges_waiver",
   "column_break_ujcs",
   "balance_interest_amount",
+  "balance_unaccrued_interest",
   "balance_penalty_amount",
   "balance_charges",
   "column_break_x8or",
   "treatment_of_normal_interest",
+  "unaccrued_interest_treatment",
   "treatment_of_penal_interest",
   "treatment_of_other_charges",
   "loan_restructure_details_section",
@@ -233,8 +234,7 @@
   {
    "fieldname": "repayment_start_date",
    "fieldtype": "Date",
-   "label": "New Repayment Start Date",
-   "reqd": 1
+   "label": "New Repayment Start Date"
   },
   {
    "fieldname": "pending_principal_amount",
@@ -342,15 +342,11 @@
    "options": "Capitalize\nCarry Forward"
   },
   {
-   "default": "Capitalize",
+   "default": "Add To First EMI",
    "fieldname": "treatment_of_normal_interest",
    "fieldtype": "Select",
    "label": "Interest Treatment",
-   "options": "Capitalize\nCarry Forward"
-  },
-  {
-   "fieldname": "column_break_16cq",
-   "fieldtype": "Column Break"
+   "options": "Add To First EMI\nCarry Forward"
   },
   {
    "fieldname": "column_break_gl0p",
@@ -373,20 +369,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "adjusted_penalty_interest",
-   "fieldtype": "Currency",
-   "label": "Adjusted Penalty",
-   "options": "Company:company:default_currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "adjusted_other_charges",
-   "fieldtype": "Currency",
-   "label": "Adjusted Other Charges",
-   "options": "Company:company:default_currency",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_hkgd",
    "fieldtype": "Column Break"
   },
@@ -398,6 +380,7 @@
    "fieldname": "balance_interest_amount",
    "fieldtype": "Currency",
    "label": "Balance Amount",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
@@ -408,12 +391,14 @@
    "fieldname": "balance_penalty_amount",
    "fieldtype": "Currency",
    "label": "Balance Amount",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
    "fieldname": "balance_charges",
    "fieldtype": "Currency",
    "label": "Balance Amount",
+   "options": "Company:company:default_currency",
    "read_only": 1
   },
   {
@@ -428,7 +413,8 @@
    "fieldname": "available_security_deposit",
    "fieldtype": "Currency",
    "label": "Available Security Deposit",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_suab",
@@ -458,7 +444,8 @@
   {
    "fieldname": "restructure_charges",
    "fieldtype": "Currency",
-   "label": "Restructure Charges"
+   "label": "Restructure Charges",
+   "read_only": 1
   },
   {
    "fieldname": "completed_tenure",
@@ -470,12 +457,39 @@
    "fieldname": "waive_off_restructure_charges",
    "fieldtype": "Check",
    "label": "Waive Off Restructure Charges"
+  },
+  {
+   "fieldname": "adjusted_unaccrued_interest",
+   "fieldtype": "Currency",
+   "label": "Adjusted Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unaccrued_interest_waiver",
+   "fieldtype": "Currency",
+   "label": "Unaccrued Interest Waiver",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "balance_unaccrued_interest",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "default": "Add To First EMI",
+   "fieldname": "unaccrued_interest_treatment",
+   "fieldtype": "Select",
+   "label": "Unaccrued Interest Treatment",
+   "options": "Add To First EMI\nCarry Forward"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-17 13:12:08.174199",
+ "modified": "2023-05-17 21:01:12.480423",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

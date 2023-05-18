@@ -16,6 +16,7 @@
   "cost_center",
   "section_break_9",
   "adjustment_account",
+  "adjustment_receivable_account",
   "reference_document_type",
   "reference_name",
   "column_break_11",
@@ -153,12 +154,18 @@
    "fieldtype": "Dynamic Link",
    "label": "Reference Name",
    "options": "reference_document_type"
+  },
+  {
+   "fieldname": "adjustment_receivable_account",
+   "fieldtype": "Link",
+   "label": "Adjustment Receivable Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-03 21:23:54.573174",
+ "modified": "2023-05-18 14:39:17.560757",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Balance Adjustment",

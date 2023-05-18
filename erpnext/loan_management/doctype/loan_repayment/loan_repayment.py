@@ -172,7 +172,7 @@ class LoanRepayment(AccountsController):
 
 	def add_pending_charges(self):
 		self.set("pending_charges", [])
-		invoices = get_outstanding_invoices(self.against_loan)
+		invoices = get_outstanding_invoices(self.against_loan, self.posting_date)
 		for d in invoices:
 			self.append(
 				"pending_charges",
@@ -1073,7 +1073,7 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 		amounts = get_amounts(amounts, against_loan, posting_date)
 
 	charges = []
-	invoices = get_outstanding_invoices(against_loan)
+	invoices = get_outstanding_invoices(against_loan, posting_date)
 	for d in invoices:
 		charges.append(
 			{
@@ -1103,9 +1103,14 @@ def calculate_amounts(against_loan, posting_date, payment_type="", with_loan_det
 		return amounts
 
 
-def get_outstanding_invoices(loan):
+def get_outstanding_invoices(loan, posting_date):
 	return frappe.db.get_all(
 		"Sales Invoice",
-		filters={"loan": loan, "outstanding_amount": (">", 0), "docstatus": 1},
+		filters={
+			"loan": loan,
+			"outstanding_amount": (">", 0),
+			"docstatus": 1,
+			"due_date": ("<=", posting_date),
+		},
 		fields=["name as voucher_no", "outstanding_amount"],
 	)
