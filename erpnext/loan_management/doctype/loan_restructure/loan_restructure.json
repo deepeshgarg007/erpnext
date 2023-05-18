@@ -346,7 +346,7 @@
    "fieldname": "treatment_of_normal_interest",
    "fieldtype": "Select",
    "label": "Interest Treatment",
-   "options": "Add To First EMI\nCarry Forward"
+   "options": "Capitalize\nAdd To First EMI"
   },
   {
    "fieldname": "column_break_gl0p",
@@ -483,13 +483,13 @@
    "fieldname": "unaccrued_interest_treatment",
    "fieldtype": "Select",
    "label": "Unaccrued Interest Treatment",
-   "options": "Add To First EMI\nCarry Forward"
+   "options": "Capitalize\nAdd To First EMI"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-17 21:01:12.480423",
+ "modified": "2023-05-18 15:47:41.076066",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

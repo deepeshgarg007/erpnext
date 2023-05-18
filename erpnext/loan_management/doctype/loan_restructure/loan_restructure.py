@@ -49,6 +49,7 @@ class LoanRestructure(AccountsController):
 		self.principal_adjusted = 0
 		self.adjusted_interest_amount = 0
 		self.adjusted_other_charges = 0
+		self.adjusted_unaccrued_interest = 0
 
 		if deposit_amount > 0:
 			# Adjust Principal
@@ -60,12 +61,6 @@ class LoanRestructure(AccountsController):
 			# Adjust Interest
 			deposit_amount = self.adjust_component(
 				deposit_amount, "interest_overdue", "adjusted_interest_amount"
-			)
-
-		if deposit_amount > 0:
-			# Adjust Unaccrued Interest
-			deposit_amount = self.adjust_component(
-				deposit_amount, "unaccrued_interest", "adjusted_unaccrued_interest"
 			)
 
 		if deposit_amount > 0:
@@ -135,10 +130,10 @@ class LoanRestructure(AccountsController):
 	def calculate_new_loan_amount(self):
 		self.new_loan_amount = flt(self.pending_principal_amount) - flt(self.principal_adjusted)
 
-		if self.treatment_of_normal_interest == "Add To First EMI":
+		if self.treatment_of_normal_interest == "Capitalize":
 			self.new_loan_amount += flt(self.balance_interest_amount)
 
-		if self.treatment_of_normal_interest == "Add To First EMI":
+		if self.unaccrued_interest_treatment == "Capitalize":
 			self.new_loan_amount += flt(self.balance_unaccrued_interest)
 
 		if self.treatment_of_penal_interest == "Capitalize":
@@ -349,6 +344,14 @@ class LoanRestructure(AccountsController):
 
 		if flt(self.other_charges_waiver) > flt(self.charges_overdue) - flt(self.adjusted_other_charges):
 			frappe.throw(_("Other Charges Waiver cannot be greater than overdue charges"))
+
+		if flt(self.penal_interest_waiver) > flt(self.penalty_overdue):
+			frappe.throw(_("Penalty Waiver cannot be greater than overdue penalty interest"))
+
+		if flt(self.unaccrued_interest_waiver) > flt(self.unaccrued_interest) - flt(
+			self.adjusted_unaccrued_interest
+		):
+			frappe.throw(_("Unaccrued Interest Waiver cannot be greater than overdue amount"))
 
 	def update_restructured_loan_details(self):
 		if not self.new_rate_of_interest:
