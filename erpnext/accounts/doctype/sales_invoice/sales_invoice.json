@@ -80,6 +80,7 @@
   "column_break5",
   "grand_total",
   "rounding_adjustment",
+  "use_company_roundoff_cost_center",
   "rounded_total",
   "in_words",
   "total_advance",
@@ -2142,6 +2143,12 @@
    "fieldtype": "Link",
    "label": "Loan",
    "options": "Loan"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_company_roundoff_cost_center",
+   "fieldtype": "Check",
+   "label": "Use Company default Cost Center for Round off"
   }
  ],
  "icon": "fa fa-file-text",
@@ -2154,7 +2161,7 @@
    "link_fieldname": "consolidated_invoice"
   }
  ],
- "modified": "2023-05-16 09:02:48.121845",
+ "modified": "2023-05-20 14:15:59.901154",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Sales Invoice",
