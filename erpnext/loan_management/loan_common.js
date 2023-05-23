@@ -17,6 +17,8 @@ frappe.ui.form.on(cur_frm.doctype, {
 				frappe.set_route("query-report", "General Ledger");
 			}, __("View"));
 		}
+
+		erpnext.hide_company();
 	},
 	applicant: function(frm) {
 		if (!["Loan Application", "Loan"].includes(frm.doc.doctype)) {

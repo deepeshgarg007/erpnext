@@ -424,7 +424,7 @@ scheduler_events = {
 	"monthly_long": [
 		"erpnext.accounts.deferred_revenue.process_deferred_accounting",
 		"erpnext.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual.process_loan_interest_accrual_for_demand_loans",
-		"erpnext.loan_management.doctype.loan_restructure.loan_restructure.calculate_monthly_restructure_limit",
+		"erpnext.loan_management.doctype.process_loan_restructure_limit.process_loan_restructure_limit.calculate_monthly_restructure_limit",
 	],
 }
 

@@ -10,6 +10,8 @@
   "applicant_type",
   "applicant",
   "loan_type",
+  "repayment_type",
+  "loan_restructure",
   "column_break_3",
   "company",
   "posting_date",
@@ -356,12 +358,26 @@
   {
    "fieldname": "column_break_g9f3",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Normal Repayment",
+   "fieldname": "repayment_type",
+   "fieldtype": "Select",
+   "label": "Repayment Type",
+   "options": "Normal Repayment\nInterest Waiver\nPenalty Waiver\nCharges Waiver"
+  },
+  {
+   "fieldname": "loan_restructure",
+   "fieldtype": "Link",
+   "label": "Loan Restructure",
+   "options": "Loan Restructure",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-16 10:30:30.755112",
+ "modified": "2023-05-21 21:54:59.402456",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Repayment",

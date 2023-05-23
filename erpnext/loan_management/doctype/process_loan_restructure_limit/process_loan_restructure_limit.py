@@ -12,6 +12,9 @@ class ProcessLoanRestructureLimit(Document):
 
 
 def calculate_monthly_restructure_limit(branch=None, posting_date=None):
+	if not posting_date:
+		posting_date = getdate()
+
 	if branch:
 		branches = [branch]
 	else:
@@ -25,9 +28,13 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 
 			if not limit_details.loan_restructure_limit:
 				loan_restructure_limit = frappe.db.get_value("Company", company, "loan_restructure_limit")
+			else:
+				loan_restructure_limit = limit_details.loan_restructure_limit
 
 			if not limit_details.delinquent_limit:
 				delinquent_limit = frappe.db.get_value("Company", company, "delinquent_limit")
+			else:
+				delinquent_limit = limit_details.delinquent_limit
 
 			outstanding_pos = get_outstanding_pos(branch, company)
 			delinquent_pos = get_outstanding_pos(branch, company, delinquent=1)
@@ -41,18 +48,19 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 			limit_amount = outstanding_pos * flt(loan_restructure_limit) / 100
 			delinquent_limit_amount = delinquent_pos * flt(delinquent_limit) / 100
 
-			frappe.get_doc(
+			limit_details = frappe._dict(
 				{
-					"doctype": "Loan Restructure Limit Log",
-					"company": company,
-					"branch": branch,
-					"date": getdate(posting_date),
 					"principal_outstanding": outstanding_pos,
 					"limit_percent": loan_restructure_limit,
 					"limit_amount": limit_amount,
 					"utilized_limit": utilized_limit,
 					"in_process_limit": in_process_amount,
 					"available_limit": limit_amount - utilized_limit - in_process_amount,
+				}
+			)
+
+			delinquent_limit_details = frappe._dict(
+				{
 					"delinquent_principal_outstanding": delinquent_pos,
 					"delinquent_utilized_limit": delinquent_utilized_limit,
 					"delinquent_limit_percent": delinquent_limit,
@@ -62,7 +70,54 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 					- delinquent_utilized_limit
 					- delinquent_in_process_limit,
 				}
-			).insert()
+			)
+
+			update_or_create_limit_log(
+				company, branch, posting_date, limit_details, delinquent_limit_details
+			)
+
+
+def update_or_create_limit_log(
+	company, branch, posting_date, limit_details, delinquent_limit_details
+):
+	existing_log = frappe.db.get_all(
+		"Loan Restructure Limit Log",
+		{"company": company, "branch": branch, "date": (">=", posting_date)},
+		["name"],
+		order_by="date desc",
+		limit=1,
+	)
+
+	if existing_log:
+		doc = frappe.get_doc("Loan Restructure Limit Log", existing_log[0].name)
+		doc.update(limit_details)
+		doc.update(delinquent_limit_details)
+		doc.save()
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Loan Restructure Limit Log",
+				"company": company,
+				"branch": branch,
+				"date": posting_date,
+				"principal_outstanding": limit_details.principal_outstanding,
+				"limit_percent": limit_details.limit_percent,
+				"limit_amount": limit_details.limit_amount,
+				"utilized_limit": limit_details.utilized_limit,
+				"in_process_limit": limit_details.in_process_amount,
+				"available_limit": flt(limit_details.limit_amount)
+				- flt(limit_details.utilized_limit)
+				- flt(limit_details.in_process_amount),
+				"delinquent_principal_outstanding": delinquent_limit_details.delinquent_pos,
+				"delinquent_utilized_limit": delinquent_limit_details.delinquent_utilized_limit,
+				"delinquent_limit_percent": delinquent_limit_details.delinquent_limit,
+				"delinquent_in_process_limit": delinquent_limit_details.delinquent_in_process_limit,
+				"delinquent_limit_amount": delinquent_limit_details.delinquent_limit_amount,
+				"delinquent_available_limit": flt(delinquent_limit_details.delinquent_limit_amount)
+				- flt(delinquent_limit_details.delinquent_utilized_limit)
+				- flt(delinquent_limit_details.delinquent_in_process_limit),
+			}
+		).insert()
 
 
 def get_outstanding_pos(branch, company, delinquent=0):
@@ -74,10 +129,15 @@ def get_outstanding_pos(branch, company, delinquent=0):
 	pos = frappe.db.get_value(
 		"Loan",
 		filters,
-		["sum(total_payment) - sum(total_principal_paid) - sum(total_interest_payable)"],
+		[
+			"sum(total_payment) as total_payment",
+			"sum(total_principal_paid) as total_principal_paid",
+			"sum(total_interest_payable) as total_interest_payable",
+		],
+		as_dict=1,
 	)
 
-	return flt(pos)
+	return flt(pos.total_payment) - flt(pos.total_principal_paid) - flt(pos.total_interest_payable)
 
 
 def get_utilized_limit(branch, company, delinquent=0):

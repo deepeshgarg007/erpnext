@@ -38,7 +38,9 @@ class LoanRepayment(AccountsController):
 		self.book_unaccrued_interest()
 
 	def on_submit(self):
-		self.update_paid_amount()
+		if self.repayment_type == "Normal Repayment":
+			self.update_paid_amount()
+
 		# self.update_repayment_schedule()
 		self.make_gl_entries()
 		create_process_asset_classification(
@@ -51,20 +53,22 @@ class LoanRepayment(AccountsController):
 	def on_cancel(self):
 		self.check_future_accruals()
 		# self.update_repayment_schedule(cancel=1)
-		self.mark_as_unpaid()
+		if self.repayment_type == "Normal Repayment":
+			self.mark_as_unpaid()
+			if self.is_npa or self.manual_npa:
+				# Mark back all loans as NPA
+				update_all_linked_loan_customer_npa_status(
+					self.is_npa, self.manual_npa, self.applicant_type, self.applicant
+				)
+
+			frappe.db.set_value("Loan", self.against_loan, "days_past_due", self.days_past_due)
+
 		self.ignore_linked_doctypes = [
 			"GL Entry",
 			"Payment Ledger Entry",
 			"Process Asset Classification",
 		]
 		self.make_gl_entries(cancel=1)
-		if self.is_npa or self.manual_npa:
-			# Mark back all loans as NPA
-			update_all_linked_loan_customer_npa_status(
-				self.is_npa, self.manual_npa, self.applicant_type, self.applicant
-			)
-
-		frappe.db.set_value("Loan", self.against_loan, "days_past_due", self.days_past_due)
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -326,7 +330,7 @@ class LoanRepayment(AccountsController):
 
 		interest_paid -= self.principal_amount_paid
 
-		if interest_paid > 0 and not self.offset_based_on_npa:
+		if interest_paid > 0 and not self.is_term_loan:
 			if self.penalty_amount and interest_paid > self.penalty_amount:
 				self.total_penalty_paid = flt(self.penalty_amount, precision)
 			elif self.penalty_amount:
@@ -334,21 +338,31 @@ class LoanRepayment(AccountsController):
 
 			interest_paid -= self.total_penalty_paid
 
-		if self.is_term_loan:
-			if self.offset_based_on_npa:
-				self.offset_repayment_based_on_npa(interest_paid, repayment_details)
-			else:
-				interest_paid, updated_entries = self.allocate_interest_amount(
-					interest_paid, repayment_details
-				)
-				self.allocate_principal_amount_for_term_loans(
-					interest_paid, repayment_details, updated_entries
-				)
-		else:
 			interest_paid, updated_entries = self.allocate_interest_amount(
 				interest_paid, repayment_details, {}
 			)
 			self.allocate_excess_payment_for_demand_loans(interest_paid, repayment_details)
+
+		if self.is_term_loan:
+			if self.repayment_type == "Normal Repayment":
+				if self.offset_based_on_npa:
+					self.offset_repayment_based_on_npa(interest_paid, repayment_details)
+				else:
+					interest_paid, updated_entries = self.allocate_interest_amount(
+						interest_paid, repayment_details
+					)
+					self.allocate_principal_amount_for_term_loans(
+						interest_paid, repayment_details, updated_entries
+					)
+
+			if self.repayment_type == "Interest Waiver":
+				self.allocate_interest_amount(interest_paid, repayment_details)
+
+			if self.repayment_type == "Penalty Waiver":
+				self.allocate_penalty(interest_paid)
+
+			if self.repayment_type == "Charges Waiver":
+				self.allocate_charges(interest_paid)
 
 	def offset_repayment_based_on_npa(self, interest_paid, repayment_details):
 		if interest_paid > 0:
@@ -412,14 +426,17 @@ class LoanRepayment(AccountsController):
 						"paid_interest_amount": interest_amount,
 					},
 				)
-
+		interest_paid = self.allocate_penalty(interest_paid)
 		self.allocate_charges(interest_paid)
 
 	def allocate_as_per_npa(self, interest_paid, repayment_details):
 		interest_paid, updated_entries = self.allocate_principal_amount_for_term_loans(
 			interest_paid, repayment_details, {}
 		)
-		self.allocate_interest_amount(interest_paid, repayment_details, updated_entries)
+		interest_paid, updated_entries = self.allocate_interest_amount(
+			interest_paid, repayment_details, updated_entries
+		)
+		interest_paid = self.allocate_penalty(interest_paid)
 		self.allocate_charges(interest_paid)
 
 	def allocate_interest_amount(self, interest_paid, repayment_details, updated_entries=None):
@@ -497,7 +514,7 @@ class LoanRepayment(AccountsController):
 
 		return interest_paid, updated_entries
 
-	def allocate_charges(self, interest_paid):
+	def allocate_penalty(self, interest_paid):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
 		if interest_paid > 0:
 			if self.penalty_amount and interest_paid > self.penalty_amount:
@@ -507,6 +524,11 @@ class LoanRepayment(AccountsController):
 				self.total_penalty_paid = flt(interest_paid, precision)
 				interest_paid = 0
 
+		return interest_paid
+
+	def allocate_charges(self, interest_paid):
+		precision = cint(frappe.db.get_default("currency_precision")) or 2
+		if interest_paid > 0:
 			self.total_paid_charges = 0
 			for charge in self.get("pending_charges"):
 				charge.allocated_amount = 0
@@ -557,10 +579,17 @@ class LoanRepayment(AccountsController):
 		if self.reference_number:
 			remarks += " with reference no. {}".format(self.reference_number)
 
-		if hasattr(self, "repay_from_salary") and self.repay_from_salary:
-			payment_account = self.payroll_payable_account
-		else:
-			payment_account = self.payment_account
+		if self.repayment_type == "Normal Repayment":
+			if hasattr(self, "repay_from_salary") and self.repay_from_salary:
+				payment_account = self.payroll_payable_account
+			else:
+				payment_account = self.payment_account
+		elif self.repayment_type == "Interest Waiver":
+			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "interest_waiver_account")
+		elif self.repayment_type == "Penalty Waiver":
+			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "penalty_waiver_account")
+		elif self.repayment_type == "Charges Waiver":
+			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "charges_waiver_account")
 
 		account_details = frappe.db.get_value(
 			"Loan Type",
@@ -1024,13 +1053,17 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 
 	unaccrued_interest = 0
 	if final_due_date:
-		pending_days = date_diff(posting_date, final_due_date) + 1
+		pending_days = date_diff(posting_date, final_due_date)
 	else:
 		last_accrual_date = get_last_accrual_date(against_loan_doc.name)
-		pending_days = date_diff(posting_date, last_accrual_date) + 1
+		pending_days = date_diff(posting_date, last_accrual_date)
 
 	if pending_days > 0:
-		principal_amount = flt(pending_principal_amount, precision)
+		if against_loan_doc.is_term_loan:
+			principal_amount = flt(pending_principal_amount - payable_principal_amount, precision)
+		else:
+			principal_amount = flt(pending_principal_amount, precision)
+
 		per_day_interest = get_per_day_interest(
 			principal_amount, loan_type_details.rate_of_interest, posting_date
 		)
