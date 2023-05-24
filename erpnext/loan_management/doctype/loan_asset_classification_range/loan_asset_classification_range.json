@@ -9,7 +9,8 @@
   "min_range",
   "max_range",
   "asset_classification_code",
-  "asset_classification_name"
+  "asset_classification_name",
+  "provision_rate"
  ],
  "fields": [
   {
@@ -29,20 +30,26 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Asset Classification Code",
-   "options": "\nSMA-0\nSMA-1\nSMA-2\nD1\nD2\nD3"
+   "options": "\nStandard\nSMA-0\nSMA-1\nSMA-2\nD1\nD2\nD3"
   },
   {
    "fieldname": "asset_classification_name",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Asset Classification Name",
-   "options": "\nSpecial Mention Account - 0\nSpecial Mention Account - 1\nSpecial Mention Account - 2\nSubstandard Asset\nDoubtful Asset\nLoss Asset"
+   "options": "\nStandard\nSpecial Mention Account - 0\nSpecial Mention Account - 1\nSpecial Mention Account - 2\nSubstandard Asset\nDoubtful Asset\nLoss Asset"
+  },
+  {
+   "fieldname": "provision_rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Provision Rate"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-05-06 16:39:31.345650",
+ "modified": "2023-05-24 08:37:22.646782",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Asset Classification Range",

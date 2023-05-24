@@ -301,6 +301,7 @@
    "options": "\nInitiated\nApproved\nRejected"
   },
   {
+   "fetch_from": "loan.loan_restructure_count",
    "fieldname": "current_restructure_count",
    "fieldtype": "Int",
    "label": "Current Restructure Count",
@@ -489,7 +490,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-18 15:47:41.076066",
+ "modified": "2023-05-24 11:11:20.680778",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",
