@@ -14,6 +14,8 @@
   "restructure_type",
   "branch",
   "status",
+  "total_amount_paid",
+  "total_principal_paid",
   "column_break_xph8",
   "company",
   "restructure_date",
@@ -485,12 +487,26 @@
    "fieldtype": "Select",
    "label": "Unaccrued Interest Treatment",
    "options": "Capitalize\nAdd To First EMI"
+  },
+  {
+   "fetch_from": "loan.total_amount_paid",
+   "fieldname": "total_amount_paid",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Total Amount Paid"
+  },
+  {
+   "fetch_from": "loan.total_principal_paid",
+   "fieldname": "total_principal_paid",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Total Principal Paid"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-24 11:11:20.680778",
+ "modified": "2023-05-25 14:47:07.139033",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

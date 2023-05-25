@@ -68,7 +68,9 @@ def calculate_monthly_restructure_limit(branch=None, posting_date=None):
 					"delinquent_limit_amount": delinquent_limit_amount,
 					"delinquent_available_limit": delinquent_limit_amount
 					- delinquent_utilized_limit
-					- delinquent_in_process_limit,
+					- delinquent_in_process_limit
+					if delinquent_pos > 0
+					else 0,
 				}
 			)
 
@@ -108,7 +110,7 @@ def update_or_create_limit_log(
 				"available_limit": flt(limit_details.limit_amount)
 				- flt(limit_details.utilized_limit)
 				- flt(limit_details.in_process_amount),
-				"delinquent_principal_outstanding": delinquent_limit_details.delinquent_pos,
+				"delinquent_principal_outstanding": delinquent_limit_details.delinquent_principal_outstanding,
 				"delinquent_utilized_limit": delinquent_limit_details.delinquent_utilized_limit,
 				"delinquent_limit_percent": delinquent_limit_details.delinquent_limit,
 				"delinquent_in_process_limit": delinquent_limit_details.delinquent_in_process_limit,
@@ -162,7 +164,7 @@ def get_in_process_limit(branch, company, delinquent=0):
 		filters.update({"pre_restructure_dpd": (">=", 1)})
 
 	in_process_limit = frappe.db.get_value(
-		"Loan Restructure", filters, ["sum(pending_principal_amount)"], debug=1
+		"Loan Restructure", filters, ["sum(pending_principal_amount)"]
 	)
 
 	return flt(in_process_limit)

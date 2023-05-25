@@ -64,7 +64,10 @@ class Loan(AccountsController):
 		self.ignore_linked_doctypes = ["GL Entry", "Payment Ledger Entry"]
 
 	def on_update_after_submit(self):
-		update_manual_npa_check(self.manual_npa, self.applicant_type, self.applicant)
+		if getdate() < getdate(self.watch_period_end_date):
+			frappe.throw(_("Cannot un mark as NPA before watch period end date"))
+
+		update_manual_npa_check(self.manual_npa, self.applicant_type, self.applicant, self.posting_date)
 		move_unpaid_interest_to_suspense_ledger(
 			applicant_type=self.applicant_type, applicant=self.applicant, reverse=not self.manual_npa
 		)
@@ -94,12 +97,6 @@ class Loan(AccountsController):
 					self.applicant_type, frappe.bold(self.applicant)
 				)
 			)
-
-	# def on_update_after_submit(self):
-	# 	from erpnext.loan_management.doctype.process_asset_classification.process_asset_classification import (
-	# 		create_process_asset_classification,
-	# 	)
-	# 	create_process_asset_classification()
 
 	def make_update_draft_schedule(self):
 		draft_schedule = frappe.db.get_value(
@@ -645,7 +642,9 @@ def update_loan_and_customer_status(
 		):
 			move_unpaid_interest_to_suspense_ledger(loan, posting_date)
 
-		update_all_linked_loan_customer_npa_status(is_npa, is_npa, applicant_type, applicant)
+		update_all_linked_loan_customer_npa_status(
+			is_npa, is_npa, applicant_type, applicant, posting_date
+		)
 	else:
 		max_dpd = frappe.db.get_value(
 			"Loan", {"applicant_type": applicant_type, "applicant": applicant}, ["MAX(days_past_due)"]
@@ -653,37 +652,53 @@ def update_loan_and_customer_status(
 
 		""" if max_dpd is greater than 0 loan still NPA, do nothing"""
 		if max_dpd == 0:
-			update_all_linked_loan_customer_npa_status(is_npa, is_npa, applicant_type, applicant)
+			update_all_linked_loan_customer_npa_status(
+				is_npa, is_npa, applicant_type, applicant, posting_date
+			)
 
 
-def update_all_linked_loan_customer_npa_status(is_npa, manual_npa, applicant_type, applicant):
+def update_all_linked_loan_customer_npa_status(
+	is_npa, manual_npa, applicant_type, applicant, posting_date
+):
 	"""Update NPA status of all linked customers"""
-	update_system_npa_check(is_npa, applicant_type, applicant)
-	update_manual_npa_check(manual_npa, applicant_type, applicant)
+	update_system_npa_check(is_npa, applicant_type, applicant, posting_date)
+	update_manual_npa_check(manual_npa, applicant_type, applicant, posting_date)
 
 
-def update_system_npa_check(is_npa, applicant_type, applicant):
+def update_system_npa_check(is_npa, applicant_type, applicant, posting_date):
 	_loan = frappe.qb.DocType("Loan")
 	frappe.qb.update(_loan).set(_loan.is_npa, is_npa).where(
 		(_loan.docstatus == 1)
 		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
 		& (_loan.applicant_type == applicant_type)
 		& (_loan.applicant == applicant)
+		& (_loan.watch_period_end_date.isnull() | _loan.watch_period_end_date < posting_date)
 	).run()
 
 	frappe.db.set_value("Customer", applicant, "is_npa", is_npa)
 
 
-def update_manual_npa_check(manual_npa, applicant_type, applicant):
+def update_manual_npa_check(manual_npa, applicant_type, applicant, posting_date):
 	_loan = frappe.qb.DocType("Loan")
 	frappe.qb.update(_loan).set(_loan.manual_npa, manual_npa).where(
 		(_loan.docstatus == 1)
 		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
 		& (_loan.applicant_type == applicant_type)
 		& (_loan.applicant == applicant)
+		& (_loan.watch_period_end_date.isnull() | _loan.watch_period_end_date < posting_date)
 	).run()
 
 	frappe.db.set_value("Customer", applicant, "is_npa", manual_npa)
+
+
+def update_watch_period_date_for_all_loans(watch_period_end_date, applicant_type, applicant):
+	_loan = frappe.qb.DocType("Loan")
+	frappe.qb.update(_loan).set(_loan.watch_period_end_date, watch_period_end_date).where(
+		(_loan.docstatus == 1)
+		& (_loan.status.isin(["Disbursed", "Partially Disbursed"]))
+		& (_loan.applicant_type == applicant_type)
+		& (_loan.applicant == applicant)
+	).run()
 
 
 def get_asset_classification_code_and_name(days_past_due, company):

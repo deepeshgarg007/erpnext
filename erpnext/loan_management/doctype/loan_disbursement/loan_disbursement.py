@@ -33,9 +33,9 @@ class LoanDisbursement(AccountsController):
 	def update_repayment_schedule_status(self, cancel=0):
 		if cancel:
 			status = "Initiated"
-			current_status = "Disbursed"
+			current_status = "Active"
 		else:
-			status = "Disbursed"
+			status = "Active"
 			current_status = "Initiated"
 
 		schedule = frappe.db.get_value(

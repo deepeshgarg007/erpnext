@@ -32,11 +32,14 @@
   "repayment_periods",
   "monthly_repayment_amount",
   "repayment_start_date",
+  "is_term_loan",
+  "loan_asset_classification_details_section",
   "days_past_due",
   "asset_classification_code",
   "asset_classification_name",
+  "column_break_zpe2",
   "loan_restructure_count",
-  "is_term_loan",
+  "watch_period_end_date",
   "accounting_dimensions_section",
   "cost_center",
   "account_info",
@@ -449,12 +452,27 @@
    "fieldtype": "Int",
    "label": "Loan Restructure Count",
    "read_only": 1
+  },
+  {
+   "fieldname": "loan_asset_classification_details_section",
+   "fieldtype": "Section Break",
+   "label": "Loan Asset Classification Details"
+  },
+  {
+   "fieldname": "column_break_zpe2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "watch_period_end_date",
+   "fieldtype": "Date",
+   "label": "Watch Period End Date",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-11 11:47:39.326965",
+ "modified": "2023-05-25 12:51:07.830572",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

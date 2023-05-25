@@ -41,14 +41,15 @@ class LoanRepayment(AccountsController):
 		if self.repayment_type == "Normal Repayment":
 			self.update_paid_amount()
 
+			create_process_asset_classification(
+				posting_date=self.posting_date,
+				loan_type=self.loan_type,
+				loan=self.against_loan,
+				payment_reference=self.name,
+			)
+
 		# self.update_repayment_schedule()
 		self.make_gl_entries()
-		create_process_asset_classification(
-			posting_date=self.posting_date,
-			loan_type=self.loan_type,
-			loan=self.against_loan,
-			payment_reference=self.name,
-		)
 
 	def on_cancel(self):
 		self.check_future_accruals()
@@ -355,13 +356,13 @@ class LoanRepayment(AccountsController):
 						interest_paid, repayment_details, updated_entries
 					)
 
-			if self.repayment_type == "Interest Waiver":
+			if self.repayment_type in ("Interest Waiver", "Interest Capitalization"):
 				self.allocate_interest_amount(interest_paid, repayment_details)
 
-			if self.repayment_type == "Penalty Waiver":
+			if self.repayment_type in ("Penalty Waiver", "Penalty Capitalization"):
 				self.allocate_penalty(interest_paid)
 
-			if self.repayment_type == "Charges Waiver":
+			if self.repayment_type in ("Charges Waiver", "Charges Capitalization"):
 				self.allocate_charges(interest_paid)
 
 	def offset_repayment_based_on_npa(self, interest_paid, repayment_details):
@@ -565,31 +566,8 @@ class LoanRepayment(AccountsController):
 
 	def make_gl_entries(self, cancel=0, adv_adj=0):
 		gle_map = []
-		if self.shortfall_amount and self.amount_paid > self.shortfall_amount:
-			remarks = "Shortfall repayment of {0}.<br>Repayment against loan {1}".format(
-				self.shortfall_amount, self.against_loan
-			)
-		elif self.shortfall_amount:
-			remarks = "Shortfall repayment of {0} against loan {1}".format(
-				self.shortfall_amount, self.against_loan
-			)
-		else:
-			remarks = "Repayment against loan " + self.against_loan
-
-		if self.reference_number:
-			remarks += " with reference no. {}".format(self.reference_number)
-
-		if self.repayment_type == "Normal Repayment":
-			if hasattr(self, "repay_from_salary") and self.repay_from_salary:
-				payment_account = self.payroll_payable_account
-			else:
-				payment_account = self.payment_account
-		elif self.repayment_type == "Interest Waiver":
-			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "interest_waiver_account")
-		elif self.repayment_type == "Penalty Waiver":
-			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "penalty_waiver_account")
-		elif self.repayment_type == "Charges Waiver":
-			payment_account = frappe.db.get_value("Loan Type", self.loan_type, "charges_waiver_account")
+		remarks = self.get_remarks()
+		payment_account = self.get_payment_account()
 
 		account_details = frappe.db.get_value(
 			"Loan Type",
@@ -807,6 +785,45 @@ class LoanRepayment(AccountsController):
 
 		if gle_map:
 			make_gl_entries(gle_map, cancel=cancel, adv_adj=adv_adj, merge_entries=False)
+
+	def get_payment_account(self):
+		payment_account_field_map = {
+			"Interest Waiver": "interest_waiver_account",
+			"Penalty Waiver": "penalty_waiver_account",
+			"Charges Waiver": "charges_waiver_account",
+			"Interest Capitalization": "loan_account",
+			"Charges Capitalization": "loan_account",
+			"Penalty Capitalization": "loan_account",
+		}
+
+		if self.repayment_type == "Normal Repayment":
+			if hasattr(self, "repay_from_salary") and self.repay_from_salary:
+				payment_account = self.payroll_payable_account
+			else:
+				payment_account = self.payment_account
+		else:
+			payment_account = frappe.db.get_value(
+				"Loan Type", self.loan_type, payment_account_field_map.get(self.repayment_type)
+			)
+
+		return payment_account
+
+	def get_remarks(self):
+		if self.shortfall_amount and self.amount_paid > self.shortfall_amount:
+			remarks = "Shortfall repayment of {0}.<br>Repayment against loan {1}".format(
+				self.shortfall_amount, self.against_loan
+			)
+		elif self.shortfall_amount:
+			remarks = "Shortfall repayment of {0} against loan {1}".format(
+				self.shortfall_amount, self.against_loan
+			)
+		else:
+			remarks = "Repayment against loan " + self.against_loan
+
+		if self.reference_number:
+			remarks += " with reference no. {}".format(self.reference_number)
+
+		return remarks
 
 
 def create_repayment_entry(

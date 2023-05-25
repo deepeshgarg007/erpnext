@@ -96,11 +96,12 @@
   "loan_asset_classification_settings_section",
   "loan_restructure_limit",
   "delinquent_limit",
-  "collection_offset_sequence_for_standard_asset",
+  "watch_period_post_loan_restructure_in_days",
   "column_break_4a9y",
   "collection_offset_logic_based_on",
   "days_past_due_threshold",
   "collection_offset_sequence_for_sub_standard_asset",
+  "collection_offset_sequence_for_standard_asset",
   "section_break_m9wy",
   "asset_classification_ranges",
   "registration_details",
@@ -757,6 +758,11 @@
    "fieldtype": "Select",
    "label": "Collection Offset Sequence for Sub Standard Asset",
    "options": "IP...IP...IP...CCC\nPPP...III...CCC"
+  },
+  {
+   "fieldname": "watch_period_post_loan_restructure_in_days",
+   "fieldtype": "Int",
+   "label": "Watch Period Post Loan Restructure (In Days)"
   }
  ],
  "icon": "fa fa-building",
@@ -764,7 +770,7 @@
  "image_field": "company_logo",
  "is_tree": 1,
  "links": [],
- "modified": "2023-05-17 14:10:18.961565",
+ "modified": "2023-05-25 11:06:59.555494",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",
