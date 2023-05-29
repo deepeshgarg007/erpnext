@@ -40,6 +40,7 @@
   "column_break_zpe2",
   "loan_restructure_count",
   "watch_period_end_date",
+  "tenure_post_restructure",
   "accounting_dimensions_section",
   "cost_center",
   "account_info",
@@ -467,12 +468,18 @@
    "fieldtype": "Date",
    "label": "Watch Period End Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "tenure_post_restructure",
+   "fieldtype": "Int",
+   "label": "Tenure Post Restructure",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-25 12:51:07.830572",
+ "modified": "2023-05-29 18:12:28.333911",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan",

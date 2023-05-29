@@ -42,6 +42,7 @@
   "penalty_waiver_account",
   "charges_waiver_account",
   "section_break_ia6s",
+  "charges_waiver_item",
   "loan_charges",
   "amended_from"
  ],
@@ -288,12 +289,18 @@
    "fieldtype": "Link",
    "label": "Security Deposit Account",
    "options": "Account"
+  },
+  {
+   "fieldname": "charges_waiver_item",
+   "fieldtype": "Link",
+   "label": "Charges Waiver Item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-16 20:06:27.584004",
+ "modified": "2023-05-29 19:33:15.313331",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Type",

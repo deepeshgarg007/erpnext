@@ -22,6 +22,7 @@ from erpnext.loan_management.doctype.loan_repayment_schedule.loan_repayment_sche
 class LoanRestructure(AccountsController):
 	def validate(self):
 		self.validate_against_initiated_restructure()
+		self.validate_against_charge_date()
 		self.validate_restructure_date()
 		self.set_completed_tenure()
 		self.update_overdue_amounts()
@@ -43,10 +44,17 @@ class LoanRestructure(AccountsController):
 		):
 			frappe.throw(_("Another Loan Restructure is already initiated for this Loan"))
 
+	def validate_against_charge_date(self):
+		last_charge_date = frappe.db.get_value("Sales Invoice", {"loan": self.loan}, "max(due_date)")
+		if getdate(self.restructure_date) < getdate(last_charge_date):
+			frappe.throw(
+				_("Restructure Date cannot be before last charge date {0}").format(last_charge_date)
+			)
+
 	def validate_restructure_date(self):
 		max_due_date = frappe.db.get_value("Loan Interest Accrual", {"loan": self.loan}, "max(due_date)")
 		if getdate(self.restructure_date) < getdate(max_due_date):
-			frappe.throw(_("Restructure Date cannot be before last due date"))
+			frappe.throw(_("Restructure Date cannot be before last due date {0}").fomrat(max_due_date))
 
 	def after_insert(self):
 		self.make_update_draft_loan_repayment_schedule()
@@ -127,14 +135,20 @@ class LoanRestructure(AccountsController):
 		if not self.new_repayment_period_in_months:
 			self.new_repayment_period_in_months = self.old_tenure
 
+	@frappe.whitelist()
 	def set_completed_tenure(self):
 		previous_repayment_schedule = frappe.db.get_value(
 			"Loan Repayment Schedule", {"loan": self.loan, "docstatus": 1, "status": "Active"}, "name"
 		)
 
-		self.completed_tenure = frappe.db.count(
+		completed_tenure = frappe.db.count(
 			"Repayment Schedule", filters={"parent": previous_repayment_schedule, "is_accrued": 1}
 		)
+
+		tenure_post_restructure = flt(frappe.db.get_value("Loan", self.loan, "tenure_post_restructure"))
+
+		self.completed_tenure = completed_tenure + tenure_post_restructure
+		return self.completed_tenure
 
 	def add_restructure_charges(self):
 		self.restructure_charges = 0
@@ -192,6 +206,7 @@ class LoanRestructure(AccountsController):
 					posting_date=self.restructure_date, open_loans=[loan_doc], via_restructure=True
 				)
 
+			self.make_waiver_and_capitalization_for_penalty()
 			self.make_loan_repayment_for_adjustment()
 			self.make_loan_repayment_for_waiver()
 			self.make_loan_adjustment_for_capitalization()
@@ -595,8 +610,24 @@ class LoanRestructure(AccountsController):
 				"total_principal_paid": total_principal_paid,
 				"total_amount_paid": total_amount_paid,
 				"repayment_periods": self.new_repayment_period_in_months,
+				"tenure_post_restructure": self.new_repayment_period_in_months + self.completed_tenure,
 			},
 		)
+
+	def make_waiver_and_capitalization_for_penalty(self):
+		if self.penal_interest_waiver:
+			create_loan_repayment(
+				self.loan, self.restructure_date, "Penalty Waiver", self.penal_interest_waiver, self.name
+			)
+
+		if self.balance_penalty_amount and self.treatment_of_penal_interest == "Capitalize":
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Penalty Capitalization",
+				self.balance_penalty_amount,
+				self.name,
+			)
 
 	def make_loan_repayment_for_adjustment(self):
 		if self.principal_adjusted:
@@ -624,11 +655,6 @@ class LoanRestructure(AccountsController):
 				self.loan, self.restructure_date, "Interest Waiver", self.unaccrued_interest_waiver, self.name
 			)
 
-		if self.penal_interest_waiver:
-			create_loan_repayment(
-				self.loan, self.restructure_date, "Penalty Waiver", self.penal_interest_waiver, self.name
-			)
-
 		if self.other_charges_waiver:
 			create_loan_repayment(
 				self.loan, self.restructure_date, "Charges Waiver", self.other_charges_waiver, self.name
@@ -640,7 +666,7 @@ class LoanRestructure(AccountsController):
 			doc.cancel()
 
 	def make_loan_adjustment_for_capitalization(self):
-		if self.balance_interest_amount and self.treatment_of_normal_interest == "Capitalize":
+		if self.balance_interest_amount:
 			create_loan_repayment(
 				self.loan,
 				self.restructure_date,
@@ -649,21 +675,12 @@ class LoanRestructure(AccountsController):
 				self.name,
 			)
 
-		if self.balance_unaccrued_interest and self.unaccrued_interest_treatment == "Capitalize":
+		if self.balance_unaccrued_interest:
 			create_loan_repayment(
 				self.loan,
 				self.restructure_date,
 				"Interest Capitalization",
 				self.balance_unaccrued_interest,
-				self.name,
-			)
-
-		if self.balance_penalty_amount and self.treatment_of_penal_interest == "Capitalize":
-			create_loan_repayment(
-				self.loan,
-				self.restructure_date,
-				"Penalty Capitalization",
-				self.balance_penalty_amount,
 				self.name,
 			)
 

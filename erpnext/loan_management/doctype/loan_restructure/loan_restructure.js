@@ -11,10 +11,19 @@ frappe.ui.form.on("Loan Restructure", {
 		frm.trigger("toggle_fields");
 	},
 
+
 	loan: function (frm) {
 		if (frm.doc.loan && frm.doc.restructure_date) {
 			frm.trigger("calculate_overdue_amounts");
 		}
+
+		frappe.call({
+			"method": "set_completed_tenure",
+			"doc": frm.doc,
+			callback: function (r) {
+				frm.set_value("completed_tenure", r.message);
+			}
+		});
 	},
 
 	restructure_date: function (frm) {

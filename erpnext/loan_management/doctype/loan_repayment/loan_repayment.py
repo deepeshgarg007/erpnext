@@ -49,6 +49,9 @@ class LoanRepayment(AccountsController):
 
 		# self.update_repayment_schedule()
 		self.update_paid_amount()
+		if self.repayment_type == "Charges Waiver":
+			self.make_credit_note()
+
 		self.make_gl_entries()
 
 	def on_cancel(self):
@@ -70,6 +73,29 @@ class LoanRepayment(AccountsController):
 			"Process Asset Classification",
 		]
 		self.make_gl_entries(cancel=1)
+
+	def make_credit_note(self):
+		item_details = frappe.db.get_value(
+			"Loan Type", self.loan_type, ["charges_waiver_item", "charges_receivable_account"], as_dict=1
+		)
+
+		for invoice in self.get("pending_charges"):
+			if invoice.sales_invoice:
+				si = frappe.new_doc("Sales Invoice")
+				si.customer = self.applicant
+				si.append(
+					"items",
+					{"item_code": item_details.charges_waiver_item, "qty": -1, "rate": invoice.allocated_amount},
+				)
+				si.set_missing_values()
+				si.is_return = 1
+				si.loan = self.against_loan
+				si.debit_to = item_details.charges_receivable_account
+				si.save()
+				for tax in si.get("taxes"):
+					tax.included_in_print_rate = 1
+				si.save()
+				si.submit()
 
 	def set_missing_values(self, amounts):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
@@ -533,8 +559,8 @@ class LoanRepayment(AccountsController):
 
 	def allocate_charges(self, interest_paid):
 		precision = cint(frappe.db.get_default("currency_precision")) or 2
+		self.total_paid_charges = 0
 		if interest_paid > 0:
-			self.total_paid_charges = 0
 			for charge in self.get("pending_charges"):
 				charge.allocated_amount = 0
 				if charge.pending_charge_amount and interest_paid > charge.pending_charge_amount:
@@ -624,7 +650,7 @@ class LoanRepayment(AccountsController):
 				)
 			)
 
-		if self.total_paid_charges:
+		if self.total_paid_charges and self.repayment_type != "Charges Waiver":
 			for charges in self.get("pending_charges"):
 				gle_map.append(
 					self.get_gl_dict(
@@ -1031,6 +1057,7 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 
 	if against_loan_doc.is_term_loan:
 		pending_penalty_amount = 0
+		computed_penalty_date = None
 
 	total_pending_interest = 0
 	penalty_amount = 0
