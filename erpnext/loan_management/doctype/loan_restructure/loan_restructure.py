@@ -10,6 +10,9 @@ from erpnext.loan_management.doctype.loan.loan import (
 	update_all_linked_loan_customer_npa_status,
 	update_watch_period_date_for_all_loans,
 )
+from erpnext.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
+	make_accrual_interest_entry_for_demand_loans,
+)
 from erpnext.loan_management.doctype.loan_repayment.loan_repayment import calculate_amounts
 from erpnext.loan_management.doctype.loan_repayment_schedule.loan_repayment_schedule import (
 	get_monthly_repayment_amount,
@@ -177,7 +180,19 @@ class LoanRestructure(AccountsController):
 		return amount_to_adjust
 
 	def on_update_after_submit(self):
+		doc_before_save = self.get_doc_before_save()
+
+		if doc_before_save.status != "Initiated":
+			return
+
 		if self.status == "Approved":
+			if self.unaccrued_interest:
+				loan_doc = frappe.get_doc("Loan", self.loan)
+				make_accrual_interest_entry_for_demand_loans(
+					posting_date=self.restructure_date, open_loans=[loan_doc], via_restructure=True
+				)
+
+			self.make_loan_repayment_for_adjustment()
 			self.make_loan_repayment_for_waiver()
 			self.make_loan_adjustment_for_capitalization()
 			self.restructure_loan()
@@ -579,13 +594,34 @@ class LoanRestructure(AccountsController):
 				"total_interest_payable": total_interest_payable,
 				"total_principal_paid": total_principal_paid,
 				"total_amount_paid": total_amount_paid,
+				"repayment_periods": self.new_repayment_period_in_months,
 			},
 		)
+
+	def make_loan_repayment_for_adjustment(self):
+		if self.principal_adjusted:
+			create_loan_repayment(
+				self.loan, self.restructure_date, "Principal Adjustment", self.principal_adjusted, self.name
+			)
+
+		if self.adjusted_interest_amount:
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Interest Adjustment",
+				self.adjusted_interest_amount,
+				self.name,
+			)
 
 	def make_loan_repayment_for_waiver(self):
 		if self.interest_waiver_amount:
 			create_loan_repayment(
 				self.loan, self.restructure_date, "Interest Waiver", self.interest_waiver_amount, self.name
+			)
+
+		if self.unaccrued_interest_waiver:
+			create_loan_repayment(
+				self.loan, self.restructure_date, "Interest Waiver", self.unaccrued_interest_waiver, self.name
 			)
 
 		if self.penal_interest_waiver:
@@ -613,12 +649,21 @@ class LoanRestructure(AccountsController):
 				self.name,
 			)
 
+		if self.balance_unaccrued_interest and self.unaccrued_interest_treatment == "Capitalize":
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Interest Capitalization",
+				self.balance_unaccrued_interest,
+				self.name,
+			)
+
 		if self.balance_penalty_amount and self.treatment_of_penal_interest == "Capitalize":
 			create_loan_repayment(
 				self.loan,
 				self.restructure_date,
 				"Penalty Capitalization",
-				self.penal_interest_waiver,
+				self.balance_penalty_amount,
 				self.name,
 			)
 
@@ -627,7 +672,16 @@ class LoanRestructure(AccountsController):
 				self.loan,
 				self.restructure_date,
 				"Charges Capitalization",
-				self.penal_interest_waiver,
+				self.balance_charges,
+				self.name,
+			)
+
+		if self.balance_principal:
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Principal Capitalization",
+				self.balance_principal,
 				self.name,
 			)
 

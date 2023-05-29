@@ -5,6 +5,6 @@ def get_data():
 			"Loan Balance Adjustment": "reference_name",
 		},
 		"transactions": [
-			{"items": ["Loan Balance Adjustment", "Loan Repayment Schedule", "Loan Repayment"]},
+			{"items": ["Loan Repayment Schedule", "Loan Repayment"]},
 		],
 	}

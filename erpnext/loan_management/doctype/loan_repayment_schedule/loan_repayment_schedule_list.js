@@ -5,7 +5,7 @@ frappe.listview_settings['Loan Repayment Schedule'] = {
 	get_indicator: function(doc) {
 		let status_color = {
 			"Draft": "red",
-			"Disbursed": "blue",
+			"Active": "green",
 			"Restructured": "orange",
 		};
 		return [__(doc.status), status_color[doc.status], "status,=,"+doc.status];

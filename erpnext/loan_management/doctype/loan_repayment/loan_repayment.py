@@ -39,7 +39,6 @@ class LoanRepayment(AccountsController):
 
 	def on_submit(self):
 		if self.repayment_type == "Normal Repayment":
-			self.update_paid_amount()
 
 			create_process_asset_classification(
 				posting_date=self.posting_date,
@@ -49,6 +48,7 @@ class LoanRepayment(AccountsController):
 			)
 
 		# self.update_repayment_schedule()
+		self.update_paid_amount()
 		self.make_gl_entries()
 
 	def on_cancel(self):
@@ -232,14 +232,15 @@ class LoanRepayment(AccountsController):
 				),
 			)
 
-		frappe.db.sql(
-			""" UPDATE `tabLoan`
-			SET total_amount_paid = %s, total_principal_paid = %s, status = %s
-			WHERE name = %s """,
-			(loan.total_amount_paid, loan.total_principal_paid, loan.status, self.against_loan),
-		)
+		if self.repayment_type == "Normal Repayment":
+			frappe.db.sql(
+				""" UPDATE `tabLoan`
+				SET total_amount_paid = %s, total_principal_paid = %s, status = %s
+				WHERE name = %s """,
+				(loan.total_amount_paid, loan.total_principal_paid, loan.status, self.against_loan),
+			)
 
-		update_shortfall_status(self.against_loan, self.principal_amount_paid)
+			update_shortfall_status(self.against_loan, self.principal_amount_paid)
 
 	def mark_as_unpaid(self):
 		loan = frappe.get_value(
@@ -355,14 +356,17 @@ class LoanRepayment(AccountsController):
 					self.allocate_principal_amount_for_term_loans(
 						interest_paid, repayment_details, updated_entries
 					)
-
-			if self.repayment_type in ("Interest Waiver", "Interest Capitalization"):
+			elif self.repayment_type in ("Principal Adjustment", "Principal Capitalization"):
+				self.allocate_principal_amount_for_term_loans(interest_paid, repayment_details, {})
+			elif self.repayment_type in (
+				"Interest Waiver",
+				"Interest Capitalization",
+				"Interest Adjustment",
+			):
 				self.allocate_interest_amount(interest_paid, repayment_details)
-
-			if self.repayment_type in ("Penalty Waiver", "Penalty Capitalization"):
+			elif self.repayment_type in ("Penalty Waiver", "Penalty Capitalization"):
 				self.allocate_penalty(interest_paid)
-
-			if self.repayment_type in ("Charges Waiver", "Charges Capitalization"):
+			elif self.repayment_type in ("Charges Waiver", "Charges Capitalization"):
 				self.allocate_charges(interest_paid)
 
 	def offset_repayment_based_on_npa(self, interest_paid, repayment_details):
@@ -583,11 +587,14 @@ class LoanRepayment(AccountsController):
 		)
 
 		if self.total_penalty_paid:
+			penalty_receivable_account = frappe.db.get_value(
+				"Loan Type", self.loan_type, "penalty_receivable_account"
+			)
 			gle_map.append(
 				self.get_gl_dict(
 					{
 						"account": payment_account,
-						"against": self.penalty_income_account,
+						"against": penalty_receivable_account,
 						"debit": self.total_penalty_paid,
 						"debit_in_account_currency": self.total_penalty_paid,
 						"against_voucher_type": "Loan",
@@ -604,7 +611,7 @@ class LoanRepayment(AccountsController):
 			gle_map.append(
 				self.get_gl_dict(
 					{
-						"account": self.penalty_income_account,
+						"account": penalty_receivable_account,
 						"against": payment_account,
 						"credit": self.total_penalty_paid,
 						"credit_in_account_currency": self.total_penalty_paid,
@@ -791,9 +798,12 @@ class LoanRepayment(AccountsController):
 			"Interest Waiver": "interest_waiver_account",
 			"Penalty Waiver": "penalty_waiver_account",
 			"Charges Waiver": "charges_waiver_account",
+			"Principal Capitalization": "loan_account",
 			"Interest Capitalization": "loan_account",
 			"Charges Capitalization": "loan_account",
 			"Penalty Capitalization": "loan_account",
+			"Principal Adjustment": "security_deposit_account",
+			"Interest Adjustment": "security_deposit_account",
 		}
 
 		if self.repayment_type == "Normal Repayment":
@@ -899,7 +909,7 @@ def get_accrued_interest_entries(against_loan, posting_date=None):
 def get_penalty_details(against_loan):
 	penalty_details = frappe.db.sql(
 		"""
-		SELECT posting_date, (penalty_amount - total_penalty_paid) as pending_penalty_amount
+		SELECT posting_date, sum(penalty_amount - total_penalty_paid) as pending_penalty_amount
 		FROM `tabLoan Repayment` where posting_date >= (SELECT MAX(posting_date) from `tabLoan Repayment`
 		where against_loan = %s) and docstatus = 1 and against_loan = %s
 	""",
@@ -1018,6 +1028,9 @@ def get_amounts(amounts, against_loan, posting_date, with_loan_details=False):
 
 	computed_penalty_date, pending_penalty_amount = get_penalty_details(against_loan)
 	pending_accrual_entries = {}
+
+	if against_loan_doc.is_term_loan:
+		pending_penalty_amount = 0
 
 	total_pending_interest = 0
 	penalty_amount = 0

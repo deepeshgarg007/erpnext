@@ -104,9 +104,9 @@ def get_data(filters):
 	)
 
 	par_details = frappe.db.get_all(
-		"Loan Asset Classification Range",
+		"Loan IRAC Provision Rate",
 		filters={"parent": filters.get("company")},
-		fields=["min_range", "max_range", "asset_classification_code", "provision_rate"],
+		fields=["asset_classification_code", "asset_type", "provision_rate"],
 	)
 
 	print(par_details)

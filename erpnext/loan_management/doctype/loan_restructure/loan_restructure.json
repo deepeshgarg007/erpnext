@@ -25,11 +25,12 @@
   "old_tenure",
   "completed_tenure",
   "old_rate_of_interest",
-  "disbursed_amount",
+  "old_loan_amount",
   "column_break_gl0p",
   "old_emi",
   "current_restructure_count",
   "pre_restructure_dpd",
+  "disbursed_amount",
   "principal_amount_details_section",
   "total_overdue_amount",
   "restructure_charges",
@@ -501,12 +502,18 @@
    "fieldtype": "Currency",
    "hidden": 1,
    "label": "Total Principal Paid"
+  },
+  {
+   "fetch_from": "loan.loan_amount",
+   "fieldname": "old_loan_amount",
+   "fieldtype": "Currency",
+   "label": "Old Loan Amount"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-25 14:47:07.139033",
+ "modified": "2023-05-28 16:32:34.581071",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",

@@ -104,6 +104,7 @@
   "collection_offset_sequence_for_standard_asset",
   "section_break_m9wy",
   "asset_classification_ranges",
+  "irac_provision_rates",
   "registration_details",
   "lft",
   "rgt",
@@ -763,6 +764,12 @@
    "fieldname": "watch_period_post_loan_restructure_in_days",
    "fieldtype": "Int",
    "label": "Watch Period Post Loan Restructure (In Days)"
+  },
+  {
+   "fieldname": "irac_provision_rates",
+   "fieldtype": "Table",
+   "label": "IRAC Provision Rates",
+   "options": "Loan IRAC Provision Rate"
   }
  ],
  "icon": "fa fa-building",
@@ -770,7 +777,7 @@
  "image_field": "company_logo",
  "is_tree": 1,
  "links": [],
- "modified": "2023-05-25 11:06:59.555494",
+ "modified": "2023-05-26 14:03:23.803651",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",

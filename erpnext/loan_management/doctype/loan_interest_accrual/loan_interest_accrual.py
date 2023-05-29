@@ -117,12 +117,18 @@ def calculate_accrual_amount_for_demand_loans(
 
 	pending_principal_amount = get_pending_principal_amount(loan)
 
+	if loan.is_term_loan:
+		pending_amounts = calculate_amounts(loan.name, posting_date)
+		pending_principal_amount = pending_principal_amount - flt(
+			pending_amounts["payable_principal_amount"]
+		)
+	else:
+		pending_amounts = calculate_amounts(loan.name, posting_date, payment_type="Loan Closure")
+
 	interest_per_day = get_per_day_interest(
 		pending_principal_amount, loan.rate_of_interest, posting_date
 	)
 	payable_interest = interest_per_day * no_of_days
-
-	pending_amounts = calculate_amounts(loan.name, posting_date, payment_type="Loan Closure")
 
 	args = frappe._dict(
 		{
@@ -137,6 +143,7 @@ def calculate_accrual_amount_for_demand_loans(
 			"penalty_amount": pending_amounts["penalty_amount"],
 			"process_loan_interest": process_loan_interest,
 			"posting_date": posting_date,
+			"due_date": posting_date,
 			"accrual_type": accrual_type,
 		}
 	)
@@ -146,13 +153,20 @@ def calculate_accrual_amount_for_demand_loans(
 
 
 def make_accrual_interest_entry_for_demand_loans(
-	posting_date, process_loan_interest, open_loans=None, loan_type=None, accrual_type="Regular"
+	posting_date,
+	process_loan_interest=None,
+	open_loans=None,
+	loan_type=None,
+	accrual_type="Regular",
+	via_restructure=False,
 ):
 	query_filters = {
 		"status": ("in", ["Disbursed", "Partially Disbursed"]),
 		"docstatus": 1,
-		"is_term_loan": 0,
 	}
+
+	if not via_restructure:
+		query_filters.update({"is_term_loan": 0})
 
 	if loan_type:
 		query_filters.update({"loan_type": loan_type})
