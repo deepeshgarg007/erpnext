@@ -165,6 +165,8 @@ class LoanRestructure(AccountsController):
 
 			self.restructure_charges += amount
 
+		self.restructure_charges = flt(self.restructure_charges, 2)
+
 	def calculate_new_loan_amount(self):
 		self.new_loan_amount = flt(self.pending_principal_amount) - flt(self.principal_adjusted)
 
@@ -179,6 +181,8 @@ class LoanRestructure(AccountsController):
 
 		if self.treatment_of_other_charges == "Capitalize":
 			self.new_loan_amount += flt(self.balance_charges)
+
+		self.new_loan_amount = flt(self.new_loan_amount, 2)
 
 	def adjust_component(self, amount_to_adjust, component, update_field):
 		if amount_to_adjust > 0:
