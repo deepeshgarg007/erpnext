@@ -141,13 +141,10 @@ class LoanRestructure(AccountsController):
 			"Loan Repayment Schedule", {"loan": self.loan, "docstatus": 1, "status": "Active"}, "name"
 		)
 
-		completed_tenure = frappe.db.count(
+		self.completed_tenure = frappe.db.count(
 			"Repayment Schedule", filters={"parent": previous_repayment_schedule, "is_accrued": 1}
 		)
 
-		tenure_post_restructure = flt(frappe.db.get_value("Loan", self.loan, "tenure_post_restructure"))
-
-		self.completed_tenure = completed_tenure + tenure_post_restructure
 		return self.completed_tenure
 
 	def add_restructure_charges(self):
@@ -214,6 +211,7 @@ class LoanRestructure(AccountsController):
 			self.make_loan_repayment_for_adjustment()
 			self.make_loan_repayment_for_waiver()
 			self.make_loan_adjustment_for_capitalization()
+			self.make_loan_adjustment_for_carry_forward()
 			self.restructure_loan()
 			self.update_totals()
 			self.update_repayment_schedule_status(status="Active")
@@ -670,7 +668,7 @@ class LoanRestructure(AccountsController):
 			doc.cancel()
 
 	def make_loan_adjustment_for_capitalization(self):
-		if self.balance_interest_amount:
+		if self.balance_interest_amount and self.treatment_of_normal_interest == "Capitalize":
 			create_loan_repayment(
 				self.loan,
 				self.restructure_date,
@@ -679,7 +677,7 @@ class LoanRestructure(AccountsController):
 				self.name,
 			)
 
-		if self.balance_unaccrued_interest:
+		if self.balance_unaccrued_interest and self.unaccrued_interest_treatment == "Capitalize":
 			create_loan_repayment(
 				self.loan,
 				self.restructure_date,
@@ -703,6 +701,25 @@ class LoanRestructure(AccountsController):
 				self.restructure_date,
 				"Principal Capitalization",
 				self.balance_principal,
+				self.name,
+			)
+
+	def make_loan_adjustment_for_carry_forward(self):
+		if self.balance_interest_amount and self.treatment_of_normal_interest == "Add To First EMI":
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Interest Carry Forward",
+				self.balance_interest_amount,
+				self.name,
+			)
+
+		if self.balance_unaccrued_interest and self.unaccrued_interest_treatment == "Add To First EMI":
+			create_loan_repayment(
+				self.loan,
+				self.restructure_date,
+				"Interest Carry Forward",
+				self.balance_unaccrued_interest,
 				self.name,
 			)
 

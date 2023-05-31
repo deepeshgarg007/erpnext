@@ -388,6 +388,7 @@ class LoanRepayment(AccountsController):
 				"Interest Waiver",
 				"Interest Capitalization",
 				"Interest Adjustment",
+				"Interest Carry Forward",
 			):
 				self.allocate_interest_amount(interest_paid, repayment_details)
 			elif self.repayment_type in ("Penalty Waiver", "Penalty Capitalization"):
@@ -830,6 +831,7 @@ class LoanRepayment(AccountsController):
 			"Penalty Capitalization": "loan_account",
 			"Principal Adjustment": "security_deposit_account",
 			"Interest Adjustment": "security_deposit_account",
+			"Interest Carry Forward": "interest_income_account",
 		}
 
 		if self.repayment_type == "Normal Repayment":

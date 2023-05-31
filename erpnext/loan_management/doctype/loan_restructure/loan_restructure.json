@@ -318,7 +318,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "loan.repayment_periods",
    "fieldname": "old_tenure",
    "fieldtype": "Int",
    "label": "Old Tenure",
@@ -513,7 +512,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-05-28 16:32:34.581071",
+ "modified": "2023-05-31 13:25:01.899763",
  "modified_by": "Administrator",
  "module": "Loan Management",
  "name": "Loan Restructure",
