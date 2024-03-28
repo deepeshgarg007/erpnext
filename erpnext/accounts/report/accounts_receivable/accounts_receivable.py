@@ -1037,14 +1037,14 @@ class ReceivablePayableReport(object):
 				fieldtype="Link",
 				options="Contact",
 			)
-		if self.filters.party_type == "Customer":
+		if self.filters.party_type == "Customer" and self.party_naming_by != "Naming Series":
 			self.add_column(
 				_("Customer Name"),
 				fieldname="customer_name",
 				fieldtype="Link",
 				options="Customer",
 			)
-		elif self.filters.party_type == "Supplier":
+		elif self.filters.party_type == "Supplier" and self.party_naming_by != "Naming Series":
 			self.add_column(
 				_("Supplier Name"),
 				fieldname="supplier_name",
